@@ -1,0 +1,24 @@
+{
+    "name": "FitTrack - Fat Loss & Workout Planner",
+    "short_name": "FitTrack",
+    "description": "Track calories, get personalized workouts, and reach your fat loss goals",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#0f0f1a",
+    "theme_color": "#00d4aa",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "icons/icon-192.svg",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "icons/icon-192.svg",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}

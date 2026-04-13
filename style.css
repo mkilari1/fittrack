@@ -1,0 +1,629 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0f0f1a;
+    --card: #1a1a2e;
+    --card-hover: #1f1f35;
+    --primary: #00d4aa;
+    --primary-dark: #00a88a;
+    --accent: #7c3aed;
+    --text: #e0e0e0;
+    --text-muted: #8888aa;
+    --danger: #ff4757;
+    --warning: #ffa502;
+    --success: #2ed573;
+    --border: #2d2d3d;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    padding: 1.5rem 2rem 0;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2rem;
+    color: var(--primary);
+    margin-bottom: 0.25rem;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+    font-size: 0.9rem;
+}
+
+nav {
+    display: flex;
+    gap: 0;
+    justify-content: center;
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.nav-btn:hover {
+    color: var(--text);
+}
+
+.nav-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--border);
+}
+
+.card h2 {
+    color: var(--primary);
+    margin-bottom: 1.25rem;
+    font-size: 1.3rem;
+}
+
+.card h3 {
+    color: var(--text);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Forms */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+}
+
+.form-group small {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+input, select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: border-color 0.3s;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #000;
+    border: none;
+    padding: 0.7rem 2rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
+}
+
+/* Summary Grid */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.summary-item {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+
+.summary-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+}
+
+.summary-value {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* Calorie Ring */
+.calorie-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.calorie-ring-container {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    flex-shrink: 0;
+}
+
+.calorie-ring {
+    width: 100%;
+    height: 100%;
+}
+
+.calorie-ring-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.calorie-ring-text span {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.calorie-ring-text small {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.macro-bars {
+    flex: 1;
+    min-width: 200px;
+}
+
+.macro-item {
+    margin-bottom: 0.75rem;
+}
+
+.macro-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.macro-bar {
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.macro-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    width: 0%;
+}
+
+.macro-fill.protein { background: #7c3aed; }
+.macro-fill.carbs { background: #ffa502; }
+.macro-fill.fats { background: #ff4757; }
+
+/* Food Log */
+.food-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.food-entry:last-child {
+    border-bottom: none;
+}
+
+.food-entry-info {
+    flex: 1;
+}
+
+.food-entry-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.food-entry-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+}
+
+.food-entry-cal {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-right: 1rem;
+}
+
+.btn-delete {
+    background: none;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.btn-delete:hover {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* Workout Cards */
+.workout-day {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.workout-day h3 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.workout-day .day-type {
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.exercise-list {
+    list-style: none;
+}
+
+.exercise-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.exercise-item:last-child {
+    border-bottom: none;
+}
+
+.exercise-name {
+    font-weight: 500;
+}
+
+.exercise-detail {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.workout-note {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(0, 212, 170, 0.08);
+    border-left: 3px solid var(--primary);
+    border-radius: 0 8px 8px 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* Progress */
+#progressChart {
+    width: 100%;
+    background: var(--bg);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.weight-entry {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+
+.weight-entry:last-child {
+    border-bottom: none;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2rem;
+    font-size: 0.95rem;
+}
+
+/* Calorie status */
+.calorie-over { color: var(--danger) !important; }
+.calorie-under { color: var(--success) !important; }
+
+/* Meal Header */
+.meal-header {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+/* Food Scanner & Search */
+.scan-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-scan {
+    background: linear-gradient(135deg, var(--accent), #5b21b6);
+    color: #fff;
+    border: none;
+    padding: 0.65rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+}
+
+.btn-scan:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+}
+
+.scan-or {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.food-search-box {
+    flex: 1;
+    position: relative;
+    min-width: 200px;
+}
+
+.food-search-box input {
+    width: 100%;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0 0 8px 8px;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.search-results.visible {
+    display: block;
+}
+
+.search-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+
+.search-item:hover {
+    background: var(--card-hover);
+}
+
+.search-item:last-child {
+    border-bottom: none;
+}
+
+.search-item-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.search-item-serving {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.search-item-cal {
+    font-size: 0.85rem;
+    color: var(--primary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Scanner camera */
+.scanner-container {
+    margin-top: 1rem;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+}
+
+.scanner-container video {
+    width: 100%;
+    max-height: 300px;
+    object-fit: cover;
+    display: block;
+}
+
+.scanner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.scanner-line {
+    width: 70%;
+    height: 2px;
+    background: var(--danger);
+    box-shadow: 0 0 10px var(--danger);
+    animation: scanPulse 2s ease-in-out infinite;
+}
+
+@keyframes scanPulse {
+    0%, 100% { opacity: 0.4; transform: translateY(-30px); }
+    50% { opacity: 1; transform: translateY(30px); }
+}
+
+.scanner-status {
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: rgba(15, 15, 26, 0.8);
+}
+
+.scan-result {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(0, 212, 170, 0.08);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+}
+
+.scan-result-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.scan-result-macros {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+}
+
+.scan-result-macros span {
+    color: var(--text-muted);
+}
+
+.scan-result-macros strong {
+    color: var(--text);
+}
+
+.btn-add-scanned {
+    background: var(--primary);
+    color: #000;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-add-scanned:hover {
+    background: var(--primary-dark);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    .calorie-header {
+        flex-direction: column;
+        align-items: center;
+    }
+    .summary-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    nav {
+        flex-wrap: wrap;
+    }
+    .nav-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+    }
+}
