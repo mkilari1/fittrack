@@ -29,6 +29,243 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 
 // ========== CALCULATIONS ==========
 
+// ========== FOOD RECOGNITION (AI-powered) ==========
+// Maps AI food-101 class names → our FOOD_DB entries with calorie data
+const FOOD_RECOGNITION_MAP = {
+    // Direct matches & close approximations
+    'chicken_curry': { name: 'Butter Chicken (1 cup)', cal: 340, protein: 28, carbs: 10, fats: 20 },
+    'grilled_chicken': { name: 'Grilled Chicken (1 piece)', cal: 280, protein: 43, carbs: 0, fats: 10 },
+    'chicken_wings': { name: 'Fried Chicken (1 piece)', cal: 294, protein: 24, carbs: 11, fats: 17 },
+    'fried_chicken': { name: 'Fried Chicken (1 piece)', cal: 294, protein: 24, carbs: 11, fats: 17 },
+    'chicken_quesadilla': { name: 'Wrap / Burrito', cal: 350, protein: 15, carbs: 40, fats: 14 },
+    'steak': { name: 'Beef Steak (100g)', cal: 271, protein: 26, carbs: 0, fats: 18 },
+    'filet_mignon': { name: 'Beef Steak (100g)', cal: 271, protein: 26, carbs: 0, fats: 18 },
+    'prime_rib': { name: 'Beef Steak (100g)', cal: 271, protein: 26, carbs: 0, fats: 18 },
+    'pork_chop': { name: 'Lamb (100g)', cal: 258, protein: 25.6, carbs: 0, fats: 16.5 },
+    'hamburger': { name: 'Burger (1 regular)', cal: 354, protein: 20, carbs: 29, fats: 17 },
+    'hot_dog': { name: 'Hot Dog (1)', cal: 290, protein: 10, carbs: 24, fats: 17 },
+    'pizza': { name: 'Pizza Slice (1)', cal: 285, protein: 12, carbs: 36, fats: 10 },
+    'french_fries': { name: 'French Fries (medium)', cal: 365, protein: 4, carbs: 48, fats: 17 },
+    'fish_and_chips': { name: 'Fish Fillet (100g)', cal: 250, protein: 16, carbs: 25, fats: 12 },
+    'sushi': { name: 'White Rice (1 cup cooked)', cal: 250, protein: 10, carbs: 40, fats: 5 },
+    'sashimi': { name: 'Salmon (100g)', cal: 208, protein: 20, carbs: 0, fats: 13 },
+    'fried_rice': { name: 'Fried Rice (1 plate)', cal: 370, protein: 8, carbs: 55, fats: 13 },
+    'rice': { name: 'White Rice (1 cup cooked)', cal: 206, protein: 4.3, carbs: 45, fats: 0.4 },
+    'biryani': { name: 'Biryani (1 plate)', cal: 490, protein: 18, carbs: 65, fats: 16 },
+    'fried_egg': { name: 'Egg (1 whole)', cal: 90, protein: 6.3, carbs: 0.4, fats: 7 },
+    'omelette': { name: 'Egg (2 eggs omelette)', cal: 154, protein: 11, carbs: 1, fats: 12 },
+    'eggs_benedict': { name: 'Egg (2 eggs)', cal: 250, protein: 15, carbs: 18, fats: 14 },
+    'deviled_eggs': { name: 'Boiled Egg (1)', cal: 78, protein: 6.3, carbs: 0.6, fats: 5.3 },
+    'bread_pudding': { name: 'Cake Slice (1)', cal: 350, protein: 4, carbs: 52, fats: 14 },
+    'toast': { name: 'Whole Wheat Bread (1 slice)', cal: 81, protein: 4, carbs: 13.8, fats: 1.1 },
+    'french_toast': { name: 'Whole Wheat Bread (2 slices)', cal: 220, protein: 8, carbs: 30, fats: 8 },
+    'pancakes': { name: 'Pancakes (2 pieces)', cal: 260, protein: 6, carbs: 40, fats: 8 },
+    'waffles': { name: 'Waffles (2 pieces)', cal: 290, protein: 7, carbs: 42, fats: 10 },
+    'pasta': { name: 'Pasta (1 cup cooked)', cal: 220, protein: 8, carbs: 43, fats: 1.3 },
+    'spaghetti_bolognese': { name: 'Pasta with sauce (1 plate)', cal: 400, protein: 18, carbs: 50, fats: 14 },
+    'spaghetti_carbonara': { name: 'Pasta with sauce (1 plate)', cal: 450, protein: 16, carbs: 48, fats: 20 },
+    'lasagna': { name: 'Lasagna (1 serving)', cal: 380, protein: 20, carbs: 35, fats: 16 },
+    'macaroni_and_cheese': { name: 'Mac & Cheese (1 cup)', cal: 350, protein: 14, carbs: 40, fats: 15 },
+    'ramen': { name: 'Noodle Soup (1 bowl)', cal: 380, protein: 12, carbs: 50, fats: 14 },
+    'pho': { name: 'Noodle Soup (1 bowl)', cal: 350, protein: 15, carbs: 45, fats: 10 },
+    'pad_thai': { name: 'Pad Thai (1 plate)', cal: 400, protein: 14, carbs: 52, fats: 16 },
+    'naan': { name: 'Naan (1 piece)', cal: 262, protein: 8.7, carbs: 45, fats: 5.1 },
+    'dosa': { name: 'Dosa (1 plain)', cal: 133, protein: 3.9, carbs: 18, fats: 5 },
+    'samosa': { name: 'Samosa (1)', cal: 252, protein: 4, carbs: 24, fats: 15 },
+    'spring_rolls': { name: 'Spring Roll (2)', cal: 200, protein: 5, carbs: 24, fats: 10 },
+    'tacos': { name: 'Tacos (2)', cal: 340, protein: 14, carbs: 30, fats: 18 },
+    'burrito': { name: 'Wrap / Burrito', cal: 350, protein: 15, carbs: 40, fats: 14 },
+    'nachos': { name: 'Nachos (1 serving)', cal: 350, protein: 10, carbs: 38, fats: 18 },
+    'sandwich': { name: 'Sandwich (veg)', cal: 230, protein: 7, carbs: 30, fats: 9 },
+    'club_sandwich': { name: 'Sandwich (chicken)', cal: 320, protein: 18, carbs: 32, fats: 14 },
+    'grilled_cheese_sandwich': { name: 'Sandwich (cheese)', cal: 290, protein: 12, carbs: 28, fats: 15 },
+    'caesar_salad': { name: 'Mixed Salad (1 bowl)', cal: 150, protein: 6, carbs: 10, fats: 10 },
+    'greek_salad': { name: 'Mixed Salad (1 bowl)', cal: 120, protein: 5, carbs: 8, fats: 8 },
+    'caprese_salad': { name: 'Mixed Salad (1 bowl)', cal: 140, protein: 8, carbs: 6, fats: 9 },
+    'soup': { name: 'Vegetable Soup (1 bowl)', cal: 120, protein: 4, carbs: 18, fats: 3 },
+    'miso_soup': { name: 'Miso Soup (1 bowl)', cal: 60, protein: 4, carbs: 6, fats: 2 },
+    'clam_chowder': { name: 'Cream Soup (1 bowl)', cal: 220, protein: 8, carbs: 20, fats: 12 },
+    'ice_cream': { name: 'Ice Cream (1 scoop)', cal: 137, protein: 2.3, carbs: 16, fats: 7.3 },
+    'chocolate_cake': { name: 'Cake Slice (1)', cal: 350, protein: 4, carbs: 52, fats: 14 },
+    'cheesecake': { name: 'Cheesecake (1 slice)', cal: 320, protein: 6, carbs: 28, fats: 20 },
+    'donuts': { name: 'Donut (1)', cal: 289, protein: 5, carbs: 33, fats: 16 },
+    'cupcakes': { name: 'Cupcake (1)', cal: 250, protein: 3, carbs: 36, fats: 10 },
+    'apple_pie': { name: 'Apple Pie (1 slice)', cal: 296, protein: 2, carbs: 44, fats: 13 },
+    'chocolate_mousse': { name: 'Chocolate Mousse (1 cup)', cal: 230, protein: 4, carbs: 28, fats: 12 },
+    'banana': { name: 'Banana (1 medium)', cal: 105, protein: 1.3, carbs: 27, fats: 0.4 },
+    'apple': { name: 'Apple (1 medium)', cal: 95, protein: 0.5, carbs: 25, fats: 0.3 },
+    'orange': { name: 'Orange (1 medium)', cal: 62, protein: 1.2, carbs: 15.4, fats: 0.2 },
+    'mango': { name: 'Mango (1 cup sliced)', cal: 99, protein: 1.4, carbs: 25, fats: 0.6 },
+    'strawberry': { name: 'Strawberries (1 cup)', cal: 49, protein: 1, carbs: 11.7, fats: 0.5 },
+    'watermelon': { name: 'Watermelon (1 cup diced)', cal: 46, protein: 0.9, carbs: 11.5, fats: 0.2 },
+    'grapes': { name: 'Grapes (1 cup)', cal: 104, protein: 1.1, carbs: 27, fats: 0.2 },
+    'pineapple': { name: 'Pineapple (1 cup)', cal: 82, protein: 0.9, carbs: 22, fats: 0.2 },
+    'coffee': { name: 'Coffee with milk (1 cup)', cal: 60, protein: 2, carbs: 7, fats: 2 },
+    'cappuccino': { name: 'Coffee with milk (1 cup)', cal: 80, protein: 4, carbs: 8, fats: 3 },
+    'espresso': { name: 'Coffee black (1 cup)', cal: 2, protein: 0.3, carbs: 0, fats: 0 },
+    'tea': { name: 'Tea with milk (1 cup)', cal: 45, protein: 1, carbs: 6, fats: 1.5 },
+    'juice': { name: 'Orange Juice (1 glass)', cal: 112, protein: 1.7, carbs: 26, fats: 0.5 },
+    'smoothie': { name: 'Fruit Smoothie (1 glass)', cal: 180, protein: 3, carbs: 40, fats: 1 },
+    'beer': { name: 'Beer (1 pint)', cal: 182, protein: 1.6, carbs: 13, fats: 0 },
+    'wine': { name: 'Wine (1 glass)', cal: 125, protein: 0.1, carbs: 3.8, fats: 0 },
+    'dal': { name: 'Dal (1 cup)', cal: 180, protein: 12, carbs: 28, fats: 2.5 },
+    'curry': { name: 'Chole / Chickpea Curry (1 cup)', cal: 240, protein: 12, carbs: 36, fats: 6 },
+    'paella': { name: 'Fried Rice (1 plate)', cal: 370, protein: 12, carbs: 50, fats: 14 },
+    'risotto': { name: 'Pulao (1 cup)', cal: 280, protein: 7, carbs: 42, fats: 9 },
+    'bruschetta': { name: 'Whole Wheat Bread (2 slices)', cal: 180, protein: 5, carbs: 24, fats: 7 },
+    'hummus': { name: 'Hummus (2 tbsp)', cal: 70, protein: 2, carbs: 6, fats: 4 },
+    'guacamole': { name: 'Avocado (1/2)', cal: 120, protein: 1.5, carbs: 6, fats: 11 },
+    'falafel': { name: 'Falafel (4 pieces)', cal: 220, protein: 8, carbs: 24, fats: 10 },
+    'popcorn': { name: 'Popcorn (1 cup air-popped)', cal: 31, protein: 1, carbs: 6.2, fats: 0.4 },
+    'chips': { name: 'Chips / Crisps (1 bag 30g)', cal: 155, protein: 2, carbs: 15, fats: 10 },
+    'cookie': { name: 'Biscuit / Cookie (1)', cal: 68, protein: 0.8, carbs: 9, fats: 3.2 },
+    'brownie': { name: 'Brownie (1 piece)', cal: 220, protein: 3, carbs: 30, fats: 10 },
+    'candy': { name: 'Chocolate Bar (1 small)', cal: 235, protein: 3.4, carbs: 26, fats: 13 },
+    'yogurt': { name: 'Greek Yogurt (1 cup)', cal: 130, protein: 22, carbs: 8, fats: 0.7 },
+    'cheese': { name: 'Cheese Slice (1)', cal: 113, protein: 7, carbs: 0.4, fats: 9.3 },
+    'butter': { name: 'Butter (1 tbsp)', cal: 102, protein: 0.1, carbs: 0, fats: 11.5 },
+};
+
+// ========== FOOD PHOTO SCANNER ==========
+
+document.getElementById('btnScanFood').addEventListener('click', () => {
+    document.getElementById('foodCameraInput').click();
+});
+
+document.getElementById('btnUploadFood').addEventListener('click', () => {
+    document.getElementById('foodGalleryInput').click();
+});
+
+document.getElementById('foodCameraInput').addEventListener('change', handleFoodPhoto);
+document.getElementById('foodGalleryInput').addEventListener('change', handleFoodPhoto);
+
+async function handleFoodPhoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const container = document.getElementById('foodPhotoContainer');
+    const preview = document.getElementById('foodPhotoPreview');
+    const overlay = document.getElementById('analyzingOverlay');
+    const resultDiv = document.getElementById('foodScanResult');
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        preview.src = ev.target.result;
+        container.style.display = 'block';
+        overlay.style.display = 'flex';
+        resultDiv.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+
+    try {
+        // Send to HuggingFace free food recognition AI
+        const results = await recognizeFood(file);
+        overlay.style.display = 'none';
+
+        if (results && results.length > 0) {
+            showFoodRecognitionResults(results, resultDiv);
+        } else {
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `<div class="scan-result-name" style="color:var(--warning);">Could not identify the food</div>
+                <p style="color:var(--text-muted);font-size:0.85rem;">Try a clearer photo or search manually below.</p>`;
+        }
+    } catch (err) {
+        overlay.style.display = 'none';
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `<div class="scan-result-name" style="color:var(--danger);">Analysis failed</div>
+            <p style="color:var(--text-muted);font-size:0.85rem;">${err.message || 'Check your internet connection and try again.'}</p>`;
+    }
+
+    // Reset file input so same photo can be re-selected
+    e.target.value = '';
+}
+
+async function recognizeFood(file) {
+    const response = await fetch('https://api-inference.huggingface.co/models/nateraw/food', {
+        method: 'POST',
+        body: file,
+        headers: { 'Content-Type': file.type }
+    });
+
+    if (!response.ok) {
+        if (response.status === 503) {
+            // Model is loading, wait and retry once
+            const body = await response.json();
+            const wait = (body.estimated_time || 20) * 1000;
+            await new Promise(r => setTimeout(r, Math.min(wait, 30000)));
+            const retry = await fetch('https://api-inference.huggingface.co/models/nateraw/food', {
+                method: 'POST',
+                body: file,
+                headers: { 'Content-Type': file.type }
+            });
+            if (!retry.ok) throw new Error('AI model is loading. Please try again in 30 seconds.');
+            return await retry.json();
+        }
+        throw new Error('Could not analyze photo. Try again.');
+    }
+    return await response.json();
+}
+
+function showFoodRecognitionResults(results, resultDiv) {
+    // Take top 3 predictions
+    const top = results.slice(0, 3);
+    resultDiv.style.display = 'block';
+
+    let html = '<div class="scan-result-name">Food Detected!</div>';
+    html += '<div class="food-matches">';
+
+    top.forEach((pred, i) => {
+        const label = pred.label.replace(/_/g, ' ');
+        const confidence = Math.round(pred.score * 100);
+        const mapped = FOOD_RECOGNITION_MAP[pred.label] || guessNutrition(pred.label);
+
+        html += `
+            <div class="food-match ${i === 0 ? 'best-match' : ''}" data-food='${JSON.stringify(mapped).replace(/'/g, "&#39;")}'>
+                <div class="food-match-header">
+                    <span class="food-match-name">${i === 0 ? '🎯 ' : ''}${capitalize(label)}</span>
+                    <span class="food-match-confidence">${confidence}% match</span>
+                </div>
+                <div class="food-match-macros">
+                    ${mapped.cal} kcal · P: ${mapped.protein}g · C: ${mapped.carbs}g · F: ${mapped.fats}g
+                </div>
+                <button class="btn-add-scanned">Add This</button>
+            </div>`;
+    });
+
+    html += '</div>';
+    resultDiv.innerHTML = html;
+
+    // Attach click handlers
+    resultDiv.querySelectorAll('.food-match').forEach(el => {
+        el.querySelector('.btn-add-scanned').addEventListener('click', () => {
+            const food = JSON.parse(el.dataset.food);
+            fillFoodForm(food);
+        });
+    });
+}
+
+function capitalize(str) {
+    return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function guessNutrition(label) {
+    // Fallback: estimate based on common sense if not in our map
+    const name = label.replace(/_/g, ' ');
+    // Search our FOOD_DB for a partial match
+    const dbMatch = FOOD_DB.find(f => {
+        const fLower = f.name.toLowerCase();
+        const words = name.toLowerCase().split(' ');
+        return words.some(w => w.length > 3 && fLower.includes(w));
+    });
+    if (dbMatch) {
+        return { name: dbMatch.name, cal: dbMatch.cal, protein: dbMatch.protein, carbs: dbMatch.carbs, fats: dbMatch.fats };
+    }
+    // Generic fallback
+    return { name: capitalize(name) + ' (estimated)', cal: 200, protein: 8, carbs: 25, fats: 8 };
+}
+
+
 // ========== FOOD DATABASE (per serving) ==========
 const FOOD_DB = [
     // Proteins

@@ -185,16 +185,40 @@
             </div>
 
             <div class="card">
-                <h3>Scan or Search Food</h3>
+                <h3>Scan Food with Camera</h3>
                 <div class="scan-actions">
-                    <button class="btn-scan" id="btnScanBarcode">📷 Scan Barcode</button>
+                    <button class="btn-scan" id="btnScanFood">📸 Take Photo of Food</button>
+                    <input type="file" id="foodCameraInput" accept="image/*" capture="environment" style="display:none;">
                     <span class="scan-or">or</span>
-                    <div class="food-search-box">
+                    <button class="btn-scan btn-gallery" id="btnUploadFood">🖼️ Upload from Gallery</button>
+                    <input type="file" id="foodGalleryInput" accept="image/*" style="display:none;">
+                </div>
+                <!-- Food photo preview & analysis -->
+                <div id="foodPhotoContainer" class="food-photo-container" style="display:none;">
+                    <img id="foodPhotoPreview" class="food-photo-preview" alt="Food photo">
+                    <div class="analyzing-overlay" id="analyzingOverlay">
+                        <div class="spinner"></div>
+                        <span>Analyzing your food...</span>
+                    </div>
+                </div>
+                <div id="foodScanResult" class="scan-result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h3>Search Food Database</h3>
+                <div class="scan-actions">
+                    <div class="food-search-box" style="flex:1;">
                         <input type="text" id="foodSearchInput" placeholder="Search food... (e.g., rice, chicken, banana)" autocomplete="off">
                         <div id="foodSearchResults" class="search-results"></div>
                     </div>
                 </div>
-                <!-- Camera for barcode scanning -->
+            </div>
+
+            <div class="card" style="display:none;">
+                <h3>Scan Barcode</h3>
+                <div class="scan-actions">
+                    <button class="btn-scan" id="btnScanBarcode">📷 Scan Barcode</button>
+                </div>
                 <div id="scannerContainer" class="scanner-container" style="display:none;">
                     <video id="scannerVideo" autoplay playsinline></video>
                     <div class="scanner-overlay">
