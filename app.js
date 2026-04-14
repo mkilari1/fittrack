@@ -128,6 +128,111 @@ const FOOD_RECOGNITION_MAP = {
 
 // ========== FOOD PHOTO SCANNER ==========
 
+// ========== IN-BROWSER AI MODEL ==========
+let mobilenetModel = null;
+
+async function loadModel() {
+    if (mobilenetModel) return mobilenetModel;
+    try {
+        mobilenetModel = await mobilenet.load({ version: 2, alpha: 1.0 });
+        return mobilenetModel;
+    } catch (e) {
+        console.error('Model load failed:', e);
+        return null;
+    }
+}
+
+// Map MobileNet ImageNet labels to food items
+const IMAGENET_FOOD_MAP = {
+    // Fruits
+    'banana': { name: 'Banana (1 medium)', cal: 105, protein: 1.3, carbs: 27, fats: 0.4 },
+    'orange': { name: 'Orange (1 medium)', cal: 62, protein: 1.2, carbs: 15.4, fats: 0.2 },
+    'lemon': { name: 'Lemon (1)', cal: 17, protein: 0.6, carbs: 5.4, fats: 0.2 },
+    'fig': { name: 'Fig (1)', cal: 37, protein: 0.4, carbs: 9.6, fats: 0.2 },
+    'pineapple': { name: 'Pineapple (1 cup)', cal: 82, protein: 0.9, carbs: 22, fats: 0.2 },
+    'strawberry': { name: 'Strawberries (1 cup)', cal: 49, protein: 1, carbs: 11.7, fats: 0.5 },
+    'pomegranate': { name: 'Pomegranate (1 cup seeds)', cal: 144, protein: 2.9, carbs: 33, fats: 2 },
+    'custard apple': { name: 'Apple (1 medium)', cal: 95, protein: 0.5, carbs: 25, fats: 0.3 },
+    'Granny Smith': { name: 'Apple (1 medium)', cal: 95, protein: 0.5, carbs: 25, fats: 0.3 },
+    'jackfruit': { name: 'Mango (1 cup sliced)', cal: 99, protein: 1.4, carbs: 25, fats: 0.6 },
+
+    // Vegetables
+    'broccoli': { name: 'Broccoli (1 cup)', cal: 55, protein: 3.7, carbs: 11, fats: 0.6 },
+    'cauliflower': { name: 'Cauliflower (1 cup)', cal: 27, protein: 2.1, carbs: 5.3, fats: 0.3 },
+    'mushroom': { name: 'Mushrooms (1 cup)', cal: 15, protein: 2.2, carbs: 2.3, fats: 0.2 },
+    'bell pepper': { name: 'Bell Pepper (1)', cal: 30, protein: 1, carbs: 6, fats: 0.3 },
+    'cucumber': { name: 'Cucumber (1 whole)', cal: 30, protein: 1.3, carbs: 6, fats: 0.2 },
+    'corn': { name: 'Sweet Potato (1 medium)', cal: 103, protein: 2.3, carbs: 24, fats: 0.1 },
+    'head cabbage': { name: 'Mixed Salad (1 bowl)', cal: 35, protein: 2, carbs: 7, fats: 0.3 },
+    'artichoke': { name: 'Mixed Salad (1 bowl)', cal: 60, protein: 4.2, carbs: 13, fats: 0.2 },
+    'cardoon': { name: 'Green Beans (1 cup)', cal: 31, protein: 1.8, carbs: 7, fats: 0.1 },
+    'spaghetti squash': { name: 'Pasta (1 cup cooked)', cal: 220, protein: 8, carbs: 43, fats: 1.3 },
+    'acorn squash': { name: 'Sweet Potato (1 medium)', cal: 103, protein: 2.3, carbs: 24, fats: 0.1 },
+    'butternut squash': { name: 'Sweet Potato (1 medium)', cal: 103, protein: 2.3, carbs: 24, fats: 0.1 },
+
+    // Prepared foods
+    'pizza': { name: 'Pizza Slice (1)', cal: 285, protein: 12, carbs: 36, fats: 10 },
+    'cheeseburger': { name: 'Burger (1 regular)', cal: 354, protein: 20, carbs: 29, fats: 17 },
+    'hotdog': { name: 'Hot Dog (1)', cal: 290, protein: 10, carbs: 24, fats: 17 },
+    'hot dog': { name: 'Hot Dog (1)', cal: 290, protein: 10, carbs: 24, fats: 17 },
+    'French loaf': { name: 'Whole Wheat Bread (2 slices)', cal: 162, protein: 8, carbs: 27.6, fats: 2.2 },
+    'bagel': { name: 'Whole Wheat Bread (2 slices)', cal: 162, protein: 8, carbs: 27.6, fats: 2.2 },
+    'pretzel': { name: 'Biscuit / Cookie (1)', cal: 68, protein: 0.8, carbs: 9, fats: 3.2 },
+    'burrito': { name: 'Wrap / Burrito', cal: 350, protein: 15, carbs: 40, fats: 14 },
+    'meat loaf': { name: 'Beef Steak (100g)', cal: 271, protein: 26, carbs: 0, fats: 18 },
+    'potpie': { name: 'Apple Pie (1 slice)', cal: 296, protein: 2, carbs: 44, fats: 13 },
+    'trifle': { name: 'Cake Slice (1)', cal: 350, protein: 4, carbs: 52, fats: 14 },
+    'ice cream': { name: 'Ice Cream (1 scoop)', cal: 137, protein: 2.3, carbs: 16, fats: 7.3 },
+    'ice lolly': { name: 'Ice Cream (1 scoop)', cal: 137, protein: 2.3, carbs: 16, fats: 7.3 },
+    'chocolate sauce': { name: 'Chocolate Bar (1 small)', cal: 235, protein: 3.4, carbs: 26, fats: 13 },
+    'guacamole': { name: 'Avocado (1/2)', cal: 120, protein: 1.5, carbs: 6, fats: 11 },
+    'carbonara': { name: 'Pasta with sauce (1 plate)', cal: 450, protein: 16, carbs: 48, fats: 20 },
+    'dough': { name: 'Naan (1 piece)', cal: 262, protein: 8.7, carbs: 45, fats: 5.1 },
+
+    // Drinks
+    'espresso': { name: 'Coffee black (1 cup)', cal: 2, protein: 0.3, carbs: 0, fats: 0 },
+    'cup': { name: 'Tea with milk (1 cup)', cal: 45, protein: 1, carbs: 6, fats: 1.5 },
+    'coffee mug': { name: 'Coffee with milk (1 cup)', cal: 60, protein: 2, carbs: 7, fats: 2 },
+    'eggnog': { name: 'Lassi (1 glass)', cal: 170, protein: 6, carbs: 28, fats: 4 },
+    'red wine': { name: 'Wine (1 glass)', cal: 125, protein: 0.1, carbs: 3.8, fats: 0 },
+    'beer glass': { name: 'Beer (1 pint)', cal: 182, protein: 1.6, carbs: 13, fats: 0 },
+    'water bottle': { name: 'Coconut Water (1 glass)', cal: 46, protein: 1.7, carbs: 9, fats: 0.5 },
+    'pop bottle': { name: 'Soda / Cola (1 can)', cal: 140, protein: 0, carbs: 39, fats: 0 },
+    'wine bottle': { name: 'Wine (1 glass)', cal: 125, protein: 0.1, carbs: 3.8, fats: 0 },
+    'beer bottle': { name: 'Beer (1 pint)', cal: 182, protein: 1.6, carbs: 13, fats: 0 },
+
+    // Eggs & dairy
+    'hen': { name: 'Grilled Chicken (1 piece)', cal: 280, protein: 43, carbs: 0, fats: 10 },
+    'cock': { name: 'Grilled Chicken (1 piece)', cal: 280, protein: 43, carbs: 0, fats: 10 },
+
+    // Misc food-adjacent
+    'plate': { name: 'White Rice (1 cup cooked)', cal: 206, protein: 4.3, carbs: 45, fats: 0.4 },
+    'mixing bowl': { name: 'Mixed Salad (1 bowl)', cal: 35, protein: 2, carbs: 7, fats: 0.3 },
+    'soup bowl': { name: 'Vegetable Soup (1 bowl)', cal: 120, protein: 4, carbs: 18, fats: 3 },
+    'frying pan': { name: 'Egg (1 whole)', cal: 72, protein: 6.3, carbs: 0.4, fats: 4.8 },
+    'wok': { name: 'Fried Rice (1 plate)', cal: 370, protein: 8, carbs: 55, fats: 13 },
+};
+
+// Try to match MobileNet label to food
+function matchMobilenetToFood(label) {
+    const lower = label.toLowerCase();
+    // Direct match
+    for (const [key, food] of Object.entries(IMAGENET_FOOD_MAP)) {
+        if (lower.includes(key.toLowerCase())) return food;
+    }
+    // Check FOOD_RECOGNITION_MAP
+    for (const [key, food] of Object.entries(FOOD_RECOGNITION_MAP)) {
+        if (lower.includes(key.replace(/_/g, ' '))) return food;
+    }
+    // Fuzzy: search FOOD_DB
+    const dbMatch = FOOD_DB.find(f => {
+        const words = lower.split(/[\s,]+/);
+        return words.some(w => w.length > 3 && f.name.toLowerCase().includes(w));
+    });
+    if (dbMatch) return { name: dbMatch.name, cal: dbMatch.cal, protein: dbMatch.protein, carbs: dbMatch.carbs, fats: dbMatch.fats };
+    return null;
+}
+
 document.getElementById('btnScanFood').addEventListener('click', () => {
     document.getElementById('foodCameraInput').click();
 });
@@ -148,35 +253,107 @@ async function handleFoodPhoto(e) {
     const overlay = document.getElementById('analyzingOverlay');
     const resultDiv = document.getElementById('foodScanResult');
 
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        preview.src = ev.target.result;
-        container.style.display = 'block';
-        overlay.style.display = 'flex';
-        resultDiv.style.display = 'none';
-    };
-    reader.readAsDataURL(file);
+    // Wait for image to load in preview before running model
+    const imgLoaded = new Promise((resolve) => {
+        const reader2 = new FileReader();
+        reader2.onload = (ev) => {
+            preview.src = ev.target.result;
+            preview.onload = () => resolve();
+            container.style.display = 'block';
+            overlay.style.display = 'flex';
+            resultDiv.style.display = 'none';
+        };
+        reader2.readAsDataURL(file);
+    });
+    await imgLoaded;
 
+    let recognized = false;
+
+    // Method 1: Try in-browser MobileNet (works offline after first load)
     try {
-        // Try AI recognition first
-        const results = await recognizeFood(file);
-        overlay.style.display = 'none';
-
-        if (results && results.length > 0) {
-            showFoodRecognitionResults(results, resultDiv);
-        } else {
-            overlay.style.display = 'none';
-            showFoodCategoryPicker(resultDiv);
+        const model = await loadModel();
+        if (model) {
+            const predictions = await model.classify(preview, 5);
+            const foodMatches = [];
+            for (const pred of predictions) {
+                const mapped = matchMobilenetToFood(pred.className);
+                if (mapped) {
+                    foodMatches.push({
+                        label: pred.className,
+                        score: pred.probability,
+                        food: mapped
+                    });
+                }
+            }
+            if (foodMatches.length > 0) {
+                overlay.style.display = 'none';
+                showLocalRecognitionResults(foodMatches, resultDiv);
+                recognized = true;
+            }
         }
-    } catch (err) {
-        // AI failed — show offline food picker
+    } catch (e) {
+        console.log('Local model failed:', e);
+    }
+
+    // Method 2: Try HuggingFace API
+    if (!recognized) {
+        try {
+            const results = await recognizeFood(file);
+            overlay.style.display = 'none';
+            if (results && results.length > 0) {
+                showFoodRecognitionResults(results, resultDiv);
+                recognized = true;
+            }
+        } catch (e) {
+            console.log('API failed:', e);
+        }
+    }
+
+    // Method 3: Fallback — manual category picker
+    if (!recognized) {
         overlay.style.display = 'none';
         showFoodCategoryPicker(resultDiv);
     }
 
-    // Reset file input so same photo can be re-selected
     e.target.value = '';
+}
+
+function showLocalRecognitionResults(matches, resultDiv) {
+    resultDiv.style.display = 'block';
+    let html = '<div class="scan-result-name">Food Detected!</div>';
+    html += '<div class="food-matches">';
+
+    matches.slice(0, 3).forEach((m, i) => {
+        const confidence = Math.round(m.score * 100);
+        const f = m.food;
+        html += `
+            <div class="food-match ${i === 0 ? 'best-match' : ''}" data-food='${JSON.stringify(f).replace(/'/g, "&#39;")}'>
+                <div class="food-match-header">
+                    <span class="food-match-name">${i === 0 ? '🎯 ' : ''}${f.name}</span>
+                    <span class="food-match-confidence">${confidence}% match</span>
+                </div>
+                <div class="food-match-macros">
+                    ${f.cal} kcal · P: ${f.protein}g · C: ${f.carbs}g · F: ${f.fats}g
+                </div>
+                <button class="btn-add-scanned">Add This</button>
+            </div>`;
+    });
+
+    html += '</div>';
+    html += '<p style="color:var(--text-muted);font-size:0.8rem;margin-top:0.75rem;">Not correct? Pick manually:</p>';
+    html += '<button class="btn-add-scanned" id="btnShowCategories" style="margin-top:0.25rem;background:var(--accent);">Browse Food Categories</button>';
+    resultDiv.innerHTML = html;
+
+    resultDiv.querySelectorAll('.food-match').forEach(el => {
+        el.querySelector('.btn-add-scanned').addEventListener('click', () => {
+            const food = JSON.parse(el.dataset.food);
+            fillFoodForm(food);
+        });
+    });
+
+    document.getElementById('btnShowCategories').addEventListener('click', () => {
+        showFoodCategoryPicker(resultDiv);
+    });
 }
 
 // ========== OFFLINE FOOD CATEGORY PICKER ==========
@@ -203,6 +380,8 @@ const FOOD_CATEGORIES = {
         { name: 'Fried Rice (1 plate)', cal: 370, protein: 8, carbs: 55, fats: 13 },
         { name: 'Pulao (1 cup)', cal: 210, protein: 5, carbs: 38, fats: 5 },
         { name: 'Khichdi (1 cup)', cal: 200, protein: 7, carbs: 34, fats: 4 },
+        { name: 'Couscous (1 cup cooked)', cal: 176, protein: 6, carbs: 36.5, fats: 0.3 },
+        { name: 'Quinoa (1 cup cooked)', cal: 222, protein: 8.1, carbs: 39.4, fats: 3.6 },
     ],
     '🍞 Roti / Bread': [
         { name: 'Roti / Chapati (1)', cal: 104, protein: 3.1, carbs: 18.3, fats: 2.6 },
@@ -447,6 +626,7 @@ const FOOD_DB = [
     { name: 'Naan (1 piece)', cal: 262, protein: 8.7, carbs: 45, fats: 5.1 },
     { name: 'Pasta (1 cup cooked)', cal: 220, protein: 8, carbs: 43, fats: 1.3 },
     { name: 'Quinoa (1 cup cooked)', cal: 222, protein: 8.1, carbs: 39.4, fats: 3.6 },
+    { name: 'Couscous (1 cup cooked)', cal: 176, protein: 6, carbs: 36.5, fats: 0.3 },
     { name: 'Sweet Potato (1 medium)', cal: 103, protein: 2.3, carbs: 24, fats: 0.1 },
     { name: 'Potato (1 medium baked)', cal: 161, protein: 4.3, carbs: 37, fats: 0.2 },
     { name: 'Corn Tortilla (1)', cal: 52, protein: 1.4, carbs: 10.7, fats: 0.7 },
@@ -749,16 +929,59 @@ function calculateFatLossPlan(profile) {
     // Cap deficit to safe range (max 1000 cal/day deficit)
     const safeDeficit = Math.min(dailyDeficit, 1000);
     const calorieTarget = Math.max(tdee - safeDeficit, gender === 'male' ? 1500 : 1200);
+    const actualDailyDeficit = tdee - calorieTarget;
 
     const bmi = calculateBMI(currentWeight, height);
+
+    // Realistic calculations
+    const weeklyFatLossKg = (actualDailyDeficit * 7) / 7700; // kg per week
+    const monthlyFatLossKg = weeklyFatLossKg * 4.33;
+    const realisticWeeks = Math.ceil(fatToLoseKg / weeklyFatLossKg);
+    const fatLossPerWeekPct = (weeklyFatLossKg / currentWeight) * 100;
+
+    // What's achievable in 12 weeks
+    const in12Weeks = {
+        fatLossKg: (weeklyFatLossKg * 12).toFixed(1),
+        fatLossPct: ((weeklyFatLossKg * 12) / currentWeight * 100).toFixed(1),
+        projectedWeight: (currentWeight - weeklyFatLossKg * 12).toFixed(1),
+    };
+
+    // Sustainability rating
+    let sustainability = '';
+    let sustainColor = '';
+    if (fatToLoseKg / weeksToGoal <= 0.5) {
+        sustainability = '✅ Very sustainable — healthy, steady progress';
+        sustainColor = 'var(--success)';
+    } else if (fatToLoseKg / weeksToGoal <= 0.75) {
+        sustainability = '✅ Sustainable — good pace, stick to the plan';
+        sustainColor = 'var(--success)';
+    } else if (fatToLoseKg / weeksToGoal <= 1.0) {
+        sustainability = '⚠️ Moderate — requires strict discipline';
+        sustainColor = 'var(--warning)';
+    } else {
+        sustainability = '🚫 Too aggressive — you may lose muscle & rebound. Increase your timeline.';
+        sustainColor = 'var(--danger)';
+    }
+
+    // Safe recommendation
+    const safeWeeks = Math.ceil(fatToLoseKg / 0.5); // 0.5 kg/week is ideal
+    const aggressiveWeeks = Math.ceil(fatToLoseKg / 0.75); // max sustainable
 
     return {
         bmr, tdee, bmi,
         fatToLoseKg: fatToLoseKg.toFixed(1),
         targetWeight: targetWeight.toFixed(1),
-        dailyDeficit: safeDeficit,
+        dailyDeficit: actualDailyDeficit,
         calorieTarget,
-        weeklyDeficit: safeDeficit * 7
+        weeklyDeficit: actualDailyDeficit * 7,
+        weeklyFatLossKg: weeklyFatLossKg.toFixed(2),
+        monthlyFatLossKg: monthlyFatLossKg.toFixed(1),
+        realisticWeeks,
+        in12Weeks,
+        sustainability,
+        sustainColor,
+        safeWeeks,
+        aggressiveWeeks
     };
 }
 
@@ -1123,8 +1346,10 @@ const WORKOUTS = {
     }
 };
 
-function getWeightCategory(bmi, bodyFat) {
-    if (bodyFat && bodyFat > 25) return 'highBF';
+function getWeightCategory(bmi, bodyFat, gender) {
+    // Women naturally have higher body fat, so adjust threshold
+    const threshold = gender === 'female' ? 30 : 25;
+    if (bodyFat && bodyFat > threshold) return 'highBF';
     if (!bodyFat && bmi > 28) return 'highBF';
     return 'lowBF';
 }
@@ -1132,8 +1357,220 @@ function getWeightCategory(bmi, bodyFat) {
 function generateWorkoutPlan(profile) {
     const level = profile.fitnessLevel;
     const bmi = calculateBMI(profile.currentWeight, profile.height);
-    const cat = getWeightCategory(parseFloat(bmi), profile.bodyFat);
-    return WORKOUTS[level][cat];
+    const cat = getWeightCategory(parseFloat(bmi), profile.bodyFat, profile.gender);
+    let plan = JSON.parse(JSON.stringify(WORKOUTS[level][cat])); // deep copy
+
+    // Personalize based on age
+    const age = profile.age;
+    if (age >= 50) {
+        plan.forEach(day => {
+            day.note += ' ⚠️ At 50+, prioritize joint health: warm up 10 min before every session. Avoid high-impact jumps — use low-impact alternatives.';
+            day.exercises = day.exercises.map(ex => {
+                // Replace high-impact exercises for older adults
+                if (/burpee/i.test(ex.name)) return { name: 'Step-out Burpees (low impact)', detail: ex.detail };
+                if (/box jump/i.test(ex.name)) return { name: 'Step-ups (low step)', detail: ex.detail };
+                if (/sprint/i.test(ex.name) && /interval/i.test(ex.name)) return { name: 'Brisk Walk Intervals', detail: ex.detail };
+                if (/jump rope/i.test(ex.name)) return { name: 'Marching in Place', detail: ex.detail };
+                return ex;
+            });
+        });
+    } else if (age >= 40) {
+        plan.forEach(day => {
+            day.note += ' At 40+, warm up for at least 5-7 min. Focus on mobility between sets.';
+        });
+    } else if (age < 20) {
+        plan.forEach(day => {
+            day.note += ' Under 20: focus on form and bodyweight mastery before adding heavy weights.';
+            day.exercises = day.exercises.map(ex => {
+                if (/deadlift.*5\s*×\s*[35]/i.test(ex.name + ' ' + ex.detail)) return { name: ex.name, detail: ex.detail.replace(/5\s*×\s*[35]/, '3 × 8') };
+                return ex;
+            });
+        });
+    }
+
+    // Personalize based on gender
+    if (profile.gender === 'female') {
+        plan.forEach(day => {
+            if (/leg|lower|glute/i.test(day.type)) {
+                // Add glute-focused exercises for women
+                const hasGlute = day.exercises.some(ex => /glute|hip thrust/i.test(ex.name));
+                if (!hasGlute) {
+                    day.exercises.push({ name: 'Hip Thrusts', detail: '3 × 12' });
+                }
+            }
+        });
+    }
+
+    // Personalize based on fat loss target
+    const fatLossPct = profile.targetFatLoss;
+    const weeksToGoal = profile.weeksToGoal;
+    const fatLossPerWeek = fatLossPct / weeksToGoal;
+
+    if (fatLossPerWeek > 0.8) {
+        // Aggressive fat loss — add more cardio
+        plan.forEach(day => {
+            const hasCardio = day.exercises.some(ex => /cardio|walk|run|jog|cycle|swim|rowing|sprint|hiit/i.test(ex.name));
+            if (!hasCardio) {
+                day.exercises.push({ name: 'Brisk Walking / Cycling', detail: '15-20 min post-workout' });
+            }
+            day.note += ' Aggressive target: ensure you maintain protein intake to preserve muscle during rapid fat loss.';
+        });
+    } else if (fatLossPct <= 3) {
+        // Mild fat loss — focus on strength
+        plan.forEach(day => {
+            if (!/rest|recovery|cardio/i.test(day.type)) {
+                day.note += ' Mild target: focus on progressive overload to build/maintain muscle while in a small deficit.';
+            }
+        });
+    }
+
+    // ===== Postpartum safety adjustments =====
+    const postpartum = profile.postpartum || 'no';
+    if (postpartum === 'recent') {
+        // Under 6 months postpartum — very gentle, no crunches, no heavy lifting
+        plan.forEach(day => {
+            day.exercises = day.exercises.map(ex => {
+                if (/crunch|sit.?up|v.?up|leg raise|dragon/i.test(ex.name)) return { name: 'Pelvic Floor Breathing', detail: '3 × 10 breaths' };
+                if (/deadlift|squat.*heavy|5\s*×\s*[35]/i.test(ex.name + ' ' + ex.detail)) return { name: 'Bodyweight Squats', detail: '3 × 10' };
+                if (/burpee|jump|sprint|tabata/i.test(ex.name)) return { name: 'Gentle Walking', detail: '15-20 min' };
+                if (/plank/i.test(ex.name)) return { name: 'Modified Plank (knees)', detail: '3 × 15 sec' };
+                return ex;
+            });
+            day.note += ' 🤱 Postpartum <6mo: No crunches or heavy abs. Focus on pelvic floor and deep core activation. Consult your doctor before starting.';
+        });
+    } else if (postpartum === 'past') {
+        plan.forEach(day => {
+            day.note += ' 🤱 Postpartum (6mo-2yr): Start reconnecting with your core. Avoid extreme intra-abdominal pressure. Progress gradually.';
+        });
+    } else if (postpartum === 'longterm') {
+        // 2+ years — no movement restrictions, but needs targeted deep core work
+        plan.forEach(day => {
+            if (!/rest|recovery/i.test(day.type)) {
+                // Add core activation to every session
+                const hasCore = day.exercises.some(ex => /plank|vacuum|dead bug|core/i.test(ex.name));
+                if (!hasCore) {
+                    day.exercises.unshift({ name: 'Stomach Vacuum (warm-up)', detail: '3 × 15 sec hold' });
+                }
+            }
+            day.note += ' 💪 Long-term pooch: Your core needs retraining. Stomach vacuums + progressive core work will tighten it. Consistency over months is key — it IS fixable!';
+        });
+    }
+
+    // ===== Focus area specific exercises =====
+    const focusArea = profile.focusArea || 'overall';
+
+    if (focusArea === 'mommyPooch') {
+        // Add a dedicated "Core Rehab & Lower Belly" day
+        const coreDay = {
+            day: 'Extra Day - Core & Lower Belly',
+            type: '🎯 Mommy Pooch / Lower Belly Focus',
+            exercises: postpartum === 'recent' ? [
+                { name: 'Diaphragmatic Breathing', detail: '3 × 10 deep breaths' },
+                { name: 'Pelvic Floor Kegels', detail: '3 × 10 (hold 5 sec each)' },
+                { name: 'Heel Slides', detail: '3 × 10 each leg' },
+                { name: 'Toe Taps (supine)', detail: '3 × 10 each leg' },
+                { name: 'Bridge with Hold', detail: '3 × 10 (hold 3 sec)' },
+                { name: 'Bird Dog (gentle)', detail: '3 × 8 each side' },
+                { name: 'Side-lying Clam', detail: '3 × 12 each side' },
+                { name: 'Gentle Walking', detail: '15-20 min' },
+            ] : postpartum === 'longterm' ? [
+                { name: 'Stomach Vacuum (standing)', detail: '5 × 20 sec hold' },
+                { name: 'Dead Bug (weighted)', detail: '3 × 12 each side' },
+                { name: 'Reverse Crunches', detail: '4 × 15' },
+                { name: 'Hanging Knee Raises', detail: '3 × 12' },
+                { name: 'Flutter Kicks', detail: '3 × 30' },
+                { name: 'Plank Hold', detail: '3 × 45-60 sec' },
+                { name: 'Plank Hip Dips', detail: '3 × 15 each side' },
+                { name: 'Ab Wheel Rollouts', detail: '3 × 10' },
+                { name: 'Cable Woodchops', detail: '3 × 12 each side' },
+                { name: 'Pallof Press (band/cable)', detail: '3 × 12 each side' },
+                { name: 'HIIT Cardio Finisher', detail: '10 min (20s on / 40s off)' },
+            ] : [
+                { name: 'Dead Bug', detail: '3 × 12 each side' },
+                { name: 'Reverse Crunches', detail: '3 × 15' },
+                { name: 'Leg Raises (lying)', detail: '3 × 12' },
+                { name: 'Flutter Kicks', detail: '3 × 20' },
+                { name: 'Plank Hold', detail: '3 × 30-45 sec' },
+                { name: 'Plank Hip Dips', detail: '3 × 12 each side' },
+                { name: 'Mountain Climbers (slow)', detail: '3 × 15 each' },
+                { name: 'Vacuum Hold (stomach vacuum)', detail: '5 × 15 sec' },
+                { name: 'Glute Bridge March', detail: '3 × 10 each leg' },
+                { name: 'Pallof Press (band/cable)', detail: '3 × 10 each side' },
+            ],
+            note: postpartum === 'longterm'
+                ? '🎯 Long-term Mommy Pooch Plan: After years, the issue is usually weakened transverse abdominis + excess fat. This plan attacks both: deep core retraining (vacuums, dead bugs, pallof press) + calorie deficit. Do this 3-4x per week. Results take 3-6 months — your core CAN come back!'
+                : postpartum === 'recent'
+                ? '🎯 Mommy Pooch Plan: These exercises target the transverse abdominis (deep core) and help close diastasis recti. Do this 3-4x per week. Avoid traditional crunches — they can worsen the gap.'
+                : '🎯 Lower Belly Focus: Spot reduction is a myth, but strengthening the deep core tightens the area. Combine with calorie deficit for visible results. Do this 3-4x per week.'
+        };
+        plan.push(coreDay);
+
+        // Also add core work to existing days
+        plan.forEach(day => {
+            if (day.type !== coreDay.type && !/rest|recovery/i.test(day.type)) {
+                const hasCore = day.exercises.some(ex => /plank|dead bug|vacuum|core|crunch|leg raise/i.test(ex.name));
+                if (!hasCore) {
+                    day.exercises.push({ name: 'Stomach Vacuum', detail: '3 × 15 sec hold' });
+                }
+            }
+        });
+
+    } else if (focusArea === 'loveHandles') {
+        const obliquesDay = {
+            day: 'Extra Day - Obliques & Love Handles',
+            type: '🎯 Love Handles Focus',
+            exercises: [
+                { name: 'Russian Twists', detail: '3 × 20 (10 each side)' },
+                { name: 'Side Plank', detail: '3 × 25 sec each side' },
+                { name: 'Bicycle Crunches', detail: '3 × 20' },
+                { name: 'Woodchoppers (band/cable)', detail: '3 × 12 each side' },
+                { name: 'Plank Hip Dips', detail: '3 × 12 each side' },
+                { name: 'Side Bends (dumbbell)', detail: '3 × 15 each side' },
+                { name: 'Standing Oblique Crunch', detail: '3 × 12 each side' },
+                { name: 'HIIT Cardio', detail: '15 min' },
+            ],
+            note: '🎯 Love Handles: Oblique-focused exercises + calorie deficit. Love handles are often the last fat to go — stay consistent!'
+        };
+        plan.push(obliquesDay);
+
+    } else if (focusArea === 'arms') {
+        const armsDay = {
+            day: 'Extra Day - Arms & Back',
+            type: '🎯 Arms & Back Fat Focus',
+            exercises: [
+                { name: 'Tricep Dips (bench)', detail: '3 × 12' },
+                { name: 'Tricep Kickbacks', detail: '3 × 12 each arm' },
+                { name: 'Push-ups (close grip)', detail: '3 × 10' },
+                { name: 'Overhead Tricep Extension', detail: '3 × 12' },
+                { name: 'Bicep Curls', detail: '3 × 12' },
+                { name: 'Lat Pulldowns / Band Pull-Aparts', detail: '3 × 15' },
+                { name: 'Reverse Flyes', detail: '3 × 12' },
+                { name: 'Arm Circles (burnout)', detail: '2 × 30 sec each direction' },
+            ],
+            note: '🎯 Arms: Tone and tighten with targeted resistance. Back fat responds well to rows and pull exercises.'
+        };
+        plan.push(armsDay);
+
+    } else if (focusArea === 'thighs') {
+        const thighsDay = {
+            day: 'Extra Day - Thighs & Hips',
+            type: '🎯 Thighs & Hips Focus',
+            exercises: [
+                { name: 'Sumo Squats', detail: '3 × 15' },
+                { name: 'Inner Thigh Leg Lifts', detail: '3 × 15 each leg' },
+                { name: 'Outer Thigh Leg Lifts', detail: '3 × 15 each leg' },
+                { name: 'Curtsy Lunges', detail: '3 × 12 each leg' },
+                { name: 'Fire Hydrants', detail: '3 × 15 each side' },
+                { name: 'Hip Thrusts', detail: '3 × 15' },
+                { name: 'Wall Sit', detail: '3 × 30 sec' },
+                { name: 'Lateral Band Walks', detail: '3 × 12 each direction' },
+            ],
+            note: '🎯 Thighs & Hips: Inner/outer thigh + glute work shapes the area. Combine with overall deficit for slimming.'
+        };
+        plan.push(thighsDay);
+    }
+
+    return plan;
 }
 
 // ========== RENDER FUNCTIONS ==========
@@ -1148,6 +1585,37 @@ function renderSummary(plan, profile) {
     document.getElementById('sumWeeklyDeficit').textContent = plan.weeklyDeficit + ' kcal';
     document.getElementById('sumBMI').textContent = plan.bmi;
     document.getElementById('sumTimeline').textContent = profile.weeksToGoal + ' weeks';
+
+    // Realistic projection card
+    document.getElementById('realisticCard').style.display = 'block';
+
+    const badge = document.getElementById('sustainabilityBadge');
+    badge.textContent = plan.sustainability;
+    badge.style.background = plan.sustainColor.replace(')', ', 0.15)').replace('var(', 'rgba(');
+    badge.style.color = plan.sustainColor;
+    badge.style.border = `1px solid ${plan.sustainColor}`;
+
+    document.getElementById('sumWeeklyLoss').textContent = plan.weeklyFatLossKg + ' kg';
+    document.getElementById('sumMonthlyLoss').textContent = plan.monthlyFatLossKg + ' kg';
+    document.getElementById('sumRealisticWeeks').textContent = plan.realisticWeeks + ' weeks';
+    document.getElementById('sumSafeWeeks').textContent = plan.safeWeeks + '-' + plan.aggressiveWeeks + ' weeks';
+
+    document.getElementById('proj12Fat').textContent = plan.in12Weeks.fatLossKg;
+    document.getElementById('proj12Pct').textContent = plan.in12Weeks.fatLossPct;
+    document.getElementById('proj12Weight').textContent = plan.in12Weeks.projectedWeight;
+
+    // Tips
+    const tipDiv = document.getElementById('projectionTip');
+    const lossRate = parseFloat(plan.weeklyFatLossKg);
+    if (lossRate > 1.0) {
+        tipDiv.innerHTML = '⚠️ <strong>Your target is too aggressive.</strong> Losing more than 1 kg/week means you\'ll lose muscle, feel fatigued, and likely regain the weight. Increase your timeline to at least <strong>' + plan.safeWeeks + ' weeks</strong> for lasting results.';
+    } else if (lossRate > 0.75) {
+        tipDiv.innerHTML = '💡 <strong>Ambitious but doable.</strong> This requires strict tracking and consistency. Don\'t skip meals — eat your protein target (shown in calorie tracker). If you feel drained, slow down. A pace of ' + plan.safeWeeks + '-' + plan.aggressiveWeeks + ' weeks is safer.';
+    } else if (lossRate > 0.5) {
+        tipDiv.innerHTML = '👍 <strong>Great pace!</strong> 0.5-0.75 kg/week is the sweet spot. You\'ll preserve muscle, keep your energy up, and the results will stick. Stay consistent with your calories and workouts.';
+    } else {
+        tipDiv.innerHTML = '🌟 <strong>Sustainable and healthy!</strong> This gentle approach is best for long-term success. You may not see dramatic weekly changes, but in 12 weeks you\'ll see a real transformation. Trust the process!';
+    }
 }
 
 function renderWorkoutPlan(workouts) {
@@ -1430,6 +1898,265 @@ function drawChart(data) {
     });
 }
 
+// ========== MEAL PLAN ENGINE ==========
+
+const MEAL_FOODS = {
+    balanced: {
+        breakfast: [
+            [{ ref: 'Oats (1 cup cooked)' }, { ref: 'Banana (1 medium)' }, { ref: 'Almonds (10 pieces)' }],
+            [{ ref: 'Boiled Egg (1)', qty: 2 }, { ref: 'Whole Wheat Bread (1 slice)', qty: 2 }, { ref: 'Apple (1 medium)' }],
+            [{ ref: 'Greek Yogurt (1 cup)' }, { ref: 'Blueberries (1 cup)' }, { ref: 'Chia Seeds (1 tbsp)' }],
+            [{ ref: 'Egg White (1)', qty: 3 }, { ref: 'Whole Wheat Bread (1 slice)' }, { ref: 'Orange (1 medium)' }],
+            [{ ref: 'Whey Protein (1 scoop)' }, { ref: 'Banana (1 medium)' }, { ref: 'Peanut Butter (1 tbsp)' }],
+        ],
+        lunch: [
+            [{ ref: 'Chicken Breast (100g)', qty: 1.5 }, { ref: 'Brown Rice (1 cup cooked)' }, { ref: 'Broccoli (1 cup)' }],
+            [{ ref: 'Salmon (100g)' }, { ref: 'Quinoa (1 cup cooked)' }, { ref: 'Mixed Salad (1 bowl)' }],
+            [{ ref: 'Turkey Breast (100g)', qty: 1.5 }, { ref: 'Sweet Potato (1 medium)' }, { ref: 'Green Beans (1 cup)' }],
+            [{ ref: 'Tuna (100g canned)' }, { ref: 'Whole Wheat Bread (1 slice)', qty: 2 }, { ref: 'Mixed Salad (1 bowl)' }],
+            [{ ref: 'Chicken Thigh (100g)' }, { ref: 'Pasta (1 cup cooked)' }, { ref: 'Spinach (1 cup cooked)' }],
+        ],
+        dinner: [
+            [{ ref: 'Fish Fillet (100g)', qty: 1.5 }, { ref: 'Brown Rice (1 cup cooked)' }, { ref: 'Spinach (1 cup cooked)' }],
+            [{ ref: 'Chicken Breast (100g)' }, { ref: 'Sweet Potato (1 medium)' }, { ref: 'Cauliflower (1 cup)' }],
+            [{ ref: 'Salmon (100g)' }, { ref: 'Quinoa (1 cup cooked)' }, { ref: 'Broccoli (1 cup)' }],
+            [{ ref: 'Turkey Breast (100g)' }, { ref: 'White Rice (1 cup cooked)' }, { ref: 'Mixed Salad (1 bowl)' }],
+            [{ ref: 'Grilled Chicken (1 piece)' }, { ref: 'Mixed Salad (1 bowl)' }, { ref: 'Avocado (1/2)' }],
+        ],
+        snack: [
+            [{ ref: 'Greek Yogurt (1 cup)' }],
+            [{ ref: 'Almonds (10 pieces)' }, { ref: 'Apple (1 medium)' }],
+            [{ ref: 'Protein Bar (1)' }],
+            [{ ref: 'Cottage Cheese (100g)' }, { ref: 'Strawberries (1 cup)' }],
+            [{ ref: 'Boiled Egg (1)', qty: 2 }],
+            [{ ref: 'Hummus (2 tbsp)' }, { ref: 'Carrot (1 medium)', qty: 2 }],
+            [{ ref: 'Peanut Butter (1 tbsp)' }, { ref: 'Banana (1 medium)' }],
+        ]
+    },
+    highProtein: {
+        breakfast: [
+            [{ ref: 'Boiled Egg (1)', qty: 3 }, { ref: 'Whole Wheat Bread (1 slice)' }, { ref: 'Greek Yogurt (1 cup)' }],
+            [{ ref: 'Whey Protein (1 scoop)' }, { ref: 'Oats (1 cup cooked)' }, { ref: 'Peanut Butter (1 tbsp)' }],
+            [{ ref: 'Egg White (1)', qty: 4 }, { ref: 'Cottage Cheese (100g)' }, { ref: 'Blueberries (1 cup)' }],
+            [{ ref: 'Greek Yogurt (1 cup)' }, { ref: 'Whey Protein (1 scoop)' }, { ref: 'Almonds (10 pieces)' }],
+        ],
+        lunch: [
+            [{ ref: 'Chicken Breast (100g)', qty: 2 }, { ref: 'Brown Rice (1 cup cooked)' }, { ref: 'Broccoli (1 cup)' }],
+            [{ ref: 'Turkey Breast (100g)', qty: 2 }, { ref: 'Quinoa (1 cup cooked)' }, { ref: 'Spinach (1 cup cooked)' }],
+            [{ ref: 'Salmon (100g)', qty: 1.5 }, { ref: 'Sweet Potato (1 medium)' }, { ref: 'Mixed Salad (1 bowl)' }],
+            [{ ref: 'Tuna (100g canned)', qty: 1.5 }, { ref: 'Brown Rice (1 cup cooked)' }, { ref: 'Green Beans (1 cup)' }],
+        ],
+        dinner: [
+            [{ ref: 'Grilled Chicken (1 piece)' }, { ref: 'Mixed Salad (1 bowl)' }, { ref: 'Avocado (1/2)' }],
+            [{ ref: 'Fish Fillet (100g)', qty: 2 }, { ref: 'Quinoa (1 cup cooked)' }, { ref: 'Broccoli (1 cup)' }],
+            [{ ref: 'Chicken Breast (100g)', qty: 1.5 }, { ref: 'Cauliflower (1 cup)' }, { ref: 'Olive Oil (1 tbsp)' }],
+            [{ ref: 'Beef Steak (100g)', qty: 1.5 }, { ref: 'Spinach (1 cup cooked)' }, { ref: 'Mushrooms (1 cup)' }],
+        ],
+        snack: [
+            [{ ref: 'Protein Shake (1 glass)' }],
+            [{ ref: 'Boiled Egg (1)', qty: 2 }, { ref: 'Almonds (10 pieces)' }],
+            [{ ref: 'Greek Yogurt (1 cup)' }, { ref: 'Whey Protein (1 scoop)' }],
+            [{ ref: 'Cottage Cheese (100g)', qty: 2 }],
+            [{ ref: 'Turkey Breast (100g)' }],
+        ]
+    },
+    vegetarian: {
+        breakfast: [
+            [{ ref: 'Oats (1 cup cooked)' }, { ref: 'Banana (1 medium)' }, { ref: 'Chia Seeds (1 tbsp)' }],
+            [{ ref: 'Boiled Egg (1)', qty: 2 }, { ref: 'Whole Wheat Bread (1 slice)', qty: 2 }],
+            [{ ref: 'Greek Yogurt (1 cup)' }, { ref: 'Strawberries (1 cup)' }, { ref: 'Almonds (10 pieces)' }],
+            [{ ref: 'Paneer (100g)' }, { ref: 'Whole Wheat Bread (1 slice)' }, { ref: 'Cucumber (1 whole)' }],
+        ],
+        lunch: [
+            [{ ref: 'Paneer (100g)' }, { ref: 'Brown Rice (1 cup cooked)' }, { ref: 'Mixed Salad (1 bowl)' }],
+            [{ ref: 'Dal (1 cup)' }, { ref: 'Roti / Chapati (1)', qty: 2 }, { ref: 'Curd / Yogurt (1 cup)' }],
+            [{ ref: 'Tofu (100g)', qty: 2 }, { ref: 'Quinoa (1 cup cooked)' }, { ref: 'Broccoli (1 cup)' }],
+            [{ ref: 'Rajma (1 cup)' }, { ref: 'Brown Rice (1 cup cooked)' }, { ref: 'Raita (1 cup)' }],
+            [{ ref: 'Chole / Chickpea Curry (1 cup)' }, { ref: 'Roti / Chapati (1)', qty: 2 }],
+        ],
+        dinner: [
+            [{ ref: 'Palak Paneer (1 cup)' }, { ref: 'Roti / Chapati (1)', qty: 2 }],
+            [{ ref: 'Tofu (100g)', qty: 1.5 }, { ref: 'Brown Rice (1 cup cooked)' }, { ref: 'Spinach (1 cup cooked)' }],
+            [{ ref: 'Dal (1 cup)' }, { ref: 'Sweet Potato (1 medium)' }, { ref: 'Mixed Salad (1 bowl)' }],
+            [{ ref: 'Egg White (1)', qty: 4 }, { ref: 'Quinoa (1 cup cooked)' }, { ref: 'Mushrooms (1 cup)' }],
+        ],
+        snack: [
+            [{ ref: 'Greek Yogurt (1 cup)' }, { ref: 'Walnuts (5 halves)' }],
+            [{ ref: 'Hummus (2 tbsp)' }, { ref: 'Carrot (1 medium)', qty: 2 }],
+            [{ ref: 'Cottage Cheese (100g)' }, { ref: 'Apple (1 medium)' }],
+            [{ ref: 'Peanut Butter (1 tbsp)' }, { ref: 'Banana (1 medium)' }],
+            [{ ref: 'Boiled Egg (1)', qty: 2 }],
+        ]
+    },
+    indian: {
+        breakfast: [
+            [{ ref: 'Idli (1 piece)', qty: 3 }, { ref: 'Curd / Yogurt (1 cup)' }],
+            [{ ref: 'Poha / Flattened Rice (1 cup)' }, { ref: 'Tea with milk (1 cup)' }],
+            [{ ref: 'Dosa (1 plain)' }, { ref: 'Curd / Yogurt (1 cup)' }, { ref: 'Banana (1 medium)' }],
+            [{ ref: 'Paratha (1 plain)' }, { ref: 'Curd / Yogurt (1 cup)' }, { ref: 'Apple (1 medium)' }],
+            [{ ref: 'Upma (1 cup)' }, { ref: 'Boiled Egg (1)', qty: 2 }],
+        ],
+        lunch: [
+            [{ ref: 'Dal (1 cup)' }, { ref: 'White Rice (1 cup cooked)' }, { ref: 'Roti / Chapati (1)' }, { ref: 'Raita (1 cup)' }],
+            [{ ref: 'Butter Chicken (1 cup)' }, { ref: 'Tandoori Roti (1)', qty: 2 }, { ref: 'Mixed Salad (1 bowl)' }],
+            [{ ref: 'Rajma (1 cup)' }, { ref: 'Brown Rice (1 cup cooked)' }, { ref: 'Curd / Yogurt (1 cup)' }],
+            [{ ref: 'Chole / Chickpea Curry (1 cup)' }, { ref: 'Roti / Chapati (1)', qty: 2 }, { ref: 'Buttermilk (1 glass)' }],
+            [{ ref: 'Palak Paneer (1 cup)' }, { ref: 'Tandoori Roti (1)', qty: 2 }, { ref: 'Raita (1 cup)' }],
+        ],
+        dinner: [
+            [{ ref: 'Khichdi (1 cup)' }, { ref: 'Curd / Yogurt (1 cup)' }, { ref: 'Mixed Salad (1 bowl)' }],
+            [{ ref: 'Dal (1 cup)' }, { ref: 'Roti / Chapati (1)', qty: 2 }, { ref: 'Aloo Gobi (1 cup)' }],
+            [{ ref: 'Chicken Breast (100g)' }, { ref: 'Pulao (1 cup)' }, { ref: 'Raita (1 cup)' }],
+            [{ ref: 'Fish Fillet (100g)' }, { ref: 'Brown Rice (1 cup cooked)' }, { ref: 'Spinach (1 cup cooked)' }],
+        ],
+        snack: [
+            [{ ref: 'Lassi (1 glass)' }],
+            [{ ref: 'Buttermilk (1 glass)' }, { ref: 'Almonds (10 pieces)' }],
+            [{ ref: 'Peanuts (1/4 cup)' }],
+            [{ ref: 'Banana (1 medium)' }, { ref: 'Cashews (10 pieces)' }],
+            [{ ref: 'Boiled Egg (1)', qty: 2 }],
+            [{ ref: 'Coconut Water (1 glass)' }, { ref: 'Walnuts (5 halves)' }],
+        ]
+    }
+};
+
+function lookupFood(ref) {
+    return FOOD_DB.find(f => f.name === ref);
+}
+
+function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function scaleMeal(items) {
+    return items.map(item => {
+        const food = lookupFood(item.ref);
+        if (!food) return null;
+        const qty = item.qty || 1;
+        return {
+            name: qty > 1 ? `${food.name} ×${qty}` : food.name,
+            cal: Math.round(food.cal * qty),
+            protein: Math.round(food.protein * qty * 10) / 10,
+            carbs: Math.round(food.carbs * qty * 10) / 10,
+            fats: Math.round(food.fats * qty * 10) / 10,
+        };
+    }).filter(Boolean);
+}
+
+function generateMealPlan(calorieTarget, dietType) {
+    const diet = MEAL_FOODS[dietType] || MEAL_FOODS.balanced;
+    // Calorie split: breakfast ~25%, lunch ~35%, dinner ~30%, snack ~10%
+    const splits = { breakfast: 0.25, lunch: 0.35, dinner: 0.30, snack: 0.10 };
+    const mealLabels = { breakfast: '🌅 Breakfast', lunch: '☀️ Lunch', dinner: '🌙 Dinner', snack: '🍎 Snack' };
+    const meals = {};
+    let totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
+
+    for (const [mealKey, pct] of Object.entries(splits)) {
+        const targetCal = calorieTarget * pct;
+        const options = diet[mealKey];
+        // Try a few random picks, keep the one closest to target calories
+        let bestMeal = null;
+        let bestDiff = Infinity;
+        for (let i = 0; i < Math.min(options.length, 5); i++) {
+            const candidate = scaleMeal(options[i]);
+            const candCal = candidate.reduce((s, f) => s + f.cal, 0);
+            const diff = Math.abs(candCal - targetCal);
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                bestMeal = candidate;
+            }
+        }
+        // If the meal is too far off, try scaling portions roughly
+        const mealCal = bestMeal.reduce((s, f) => s + f.cal, 0);
+        if (mealCal > 0 && Math.abs(mealCal - targetCal) / targetCal > 0.3) {
+            const scale = targetCal / mealCal;
+            if (scale >= 0.6 && scale <= 1.6) {
+                bestMeal = bestMeal.map(f => ({
+                    name: f.name,
+                    cal: Math.round(f.cal * scale),
+                    protein: Math.round(f.protein * scale * 10) / 10,
+                    carbs: Math.round(f.carbs * scale * 10) / 10,
+                    fats: Math.round(f.fats * scale * 10) / 10,
+                }));
+            }
+        }
+
+        const mc = bestMeal.reduce((s, f) => s + f.cal, 0);
+        const mp = bestMeal.reduce((s, f) => s + f.protein, 0);
+        const mca = bestMeal.reduce((s, f) => s + f.carbs, 0);
+        const mf = bestMeal.reduce((s, f) => s + f.fats, 0);
+        totalCal += mc; totalP += mp; totalC += mca; totalF += mf;
+
+        meals[mealKey] = {
+            label: mealLabels[mealKey],
+            foods: bestMeal,
+            totalCal: mc,
+            totalProtein: Math.round(mp),
+            totalCarbs: Math.round(mca),
+            totalFats: Math.round(mf),
+        };
+    }
+
+    return {
+        meals,
+        totals: {
+            cal: Math.round(totalCal),
+            protein: Math.round(totalP),
+            carbs: Math.round(totalC),
+            fats: Math.round(totalF),
+        }
+    };
+}
+
+function renderMealPlan(plan) {
+    if (!plan) return;
+    const container = document.getElementById('mealPlanContent');
+    const mpContainer = document.getElementById('mealPlanContainer');
+    const noMsg = document.getElementById('noMealPlanMsg');
+
+    noMsg.style.display = 'none';
+    mpContainer.style.display = 'block';
+
+    document.getElementById('mpCalories').textContent = plan.totals.cal + ' kcal';
+    document.getElementById('mpProtein').textContent = plan.totals.protein + 'g';
+    document.getElementById('mpCarbs').textContent = plan.totals.carbs + 'g';
+    document.getElementById('mpFats').textContent = plan.totals.fats + 'g';
+
+    let html = '';
+    for (const [key, meal] of Object.entries(plan.meals)) {
+        html += `<div class="meal-card">
+            <div class="meal-card-header">
+                <span class="meal-card-title">${meal.label}</span>
+                <span class="meal-card-cal">${meal.totalCal} kcal</span>
+            </div>`;
+        meal.foods.forEach(f => {
+            html += `<div class="meal-food-item">
+                <span class="meal-food-name">${f.name}</span>
+                <span class="meal-food-macros">
+                    <span>${f.cal} cal</span>
+                    <span>P ${f.protein}g</span>
+                    <span>C ${f.carbs}g</span>
+                    <span>F ${f.fats}g</span>
+                </span>
+            </div>`;
+        });
+        html += `<div class="meal-card-total">
+                <span>P: ${meal.totalProtein}g</span>
+                <span>C: ${meal.totalCarbs}g</span>
+                <span>F: ${meal.totalFats}g</span>
+            </div>
+        </div>`;
+    }
+    html += `<div class="meal-card"><button class="mp-refresh-btn" id="mpRefreshBtn">🔄 Shuffle Meal Plan</button></div>`;
+    container.innerHTML = html;
+
+    document.getElementById('mpRefreshBtn').addEventListener('click', () => {
+        const dietType = document.querySelector('.mp-diet-btn.active')?.dataset.diet || 'balanced';
+        const newPlan = generateMealPlan(state.plan.calorieTarget, dietType);
+        renderMealPlan(newPlan);
+    });
+}
+
 // ========== EVENT HANDLERS ==========
 
 // Profile form
@@ -1445,7 +2172,9 @@ document.getElementById('profileForm').addEventListener('submit', (e) => {
         targetFatLoss: parseFloat(document.getElementById('targetFatLoss').value),
         activityLevel: document.getElementById('activityLevel').value,
         weeksToGoal: parseInt(document.getElementById('weeksToGoal').value),
-        fitnessLevel: document.getElementById('fitnessLevel').value
+        fitnessLevel: document.getElementById('fitnessLevel').value,
+        focusArea: document.getElementById('focusArea').value,
+        postpartum: document.getElementById('postpartum').value
     };
 
     const planCalc = calculateFatLossPlan(profile);
@@ -1457,7 +2186,22 @@ document.getElementById('profileForm').addEventListener('submit', (e) => {
 
     renderSummary(planCalc, profile);
     renderWorkoutPlan(workouts);
+    const dietType = document.querySelector('.mp-diet-btn.active')?.dataset.diet || 'balanced';
+    const mealPlan = generateMealPlan(planCalc.calorieTarget, dietType);
+    renderMealPlan(mealPlan);
     renderFoodLog(); // update calorie goal
+});
+
+// Diet toggle buttons
+document.querySelectorAll('.mp-diet-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.mp-diet-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (state.plan) {
+            const mealPlan = generateMealPlan(state.plan.calorieTarget, btn.dataset.diet);
+            renderMealPlan(mealPlan);
+        }
+    });
 });
 
 // Food form
@@ -1516,11 +2260,16 @@ function init() {
         document.getElementById('activityLevel').value = p.activityLevel || '';
         document.getElementById('weeksToGoal').value = p.weeksToGoal || '';
         document.getElementById('fitnessLevel').value = p.fitnessLevel || '';
+        document.getElementById('focusArea').value = p.focusArea || 'overall';
+        document.getElementById('postpartum').value = p.postpartum || 'no';
 
         if (state.plan) {
             renderSummary(state.plan, p);
             const workouts = generateWorkoutPlan(p);
             renderWorkoutPlan(workouts);
+            const dietType = document.querySelector('.mp-diet-btn.active')?.dataset.diet || 'balanced';
+            const mealPlan = generateMealPlan(state.plan.calorieTarget, dietType);
+            renderMealPlan(mealPlan);
         }
     }
 

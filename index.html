@@ -13,6 +13,8 @@
     <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.svg">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
 </head>
 <body>
     <header>
@@ -21,6 +23,7 @@
         <nav>
             <button class="nav-btn active" data-tab="profile">Profile</button>
             <button class="nav-btn" data-tab="plan">Workout Plan</button>
+            <button class="nav-btn" data-tab="mealplan">Meal Plan</button>
             <button class="nav-btn" data-tab="calories">Calorie Tracker</button>
             <button class="nav-btn" data-tab="progress">Progress</button>
         </nav>
@@ -98,6 +101,28 @@
                             </select>
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="focusArea">Focus Area (optional)</label>
+                            <select id="focusArea">
+                                <option value="overall">Overall Fat Loss</option>
+                                <option value="mommyPooch">Mommy Pooch / Lower Belly</option>
+                                <option value="loveHandles">Love Handles / Obliques</option>
+                                <option value="arms">Arms & Back Fat</option>
+                                <option value="thighs">Thighs & Hips</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="postpartum">Postpartum?</label>
+                            <select id="postpartum">
+                                <option value="no">No</option>
+                                <option value="recent">Yes - under 6 months</option>
+                                <option value="past">Yes - 6 months to 2 years</option>
+                                <option value="longterm">Yes - 2+ years (long-term mommy pooch)</option>
+                            </select>
+                            <small>Adjusts exercises for safe recovery</small>
+                        </div>
+                    </div>
                     <button type="submit" class="btn-primary">Generate My Plan</button>
                 </form>
             </div>
@@ -135,10 +160,43 @@
                         <span class="summary-value" id="sumBMI">--</span>
                     </div>
                     <div class="summary-item">
-                        <span class="summary-label">Timeline</span>
+                        <span class="summary-label">Your Timeline</span>
                         <span class="summary-value" id="sumTimeline">--</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Realistic Projection Card -->
+            <div class="card" id="realisticCard" style="display:none;">
+                <h2>Realistic Projection</h2>
+                <div id="sustainabilityBadge" class="sustainability-badge"></div>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="summary-label">Fat Loss per Week</span>
+                        <span class="summary-value" id="sumWeeklyLoss">--</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Fat Loss per Month</span>
+                        <span class="summary-value" id="sumMonthlyLoss">--</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Realistic Timeline</span>
+                        <span class="summary-value" id="sumRealisticWeeks">--</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Safe Pace (recommended)</span>
+                        <span class="summary-value" id="sumSafeWeeks">--</span>
+                    </div>
+                </div>
+                <div class="projection-box" id="projection12Weeks">
+                    <h3>📊 What you can realistically achieve in 12 weeks:</h3>
+                    <div class="projection-stats">
+                        <div><strong id="proj12Fat">--</strong> kg fat lost</div>
+                        <div><strong id="proj12Pct">--</strong>% body fat reduced</div>
+                        <div>Projected weight: <strong id="proj12Weight">--</strong> kg</div>
+                    </div>
+                </div>
+                <div class="projection-tip" id="projectionTip"></div>
             </div>
         </section>
 
@@ -148,6 +206,48 @@
                 <p class="empty-state">Complete your profile first to get a personalized workout plan.</p>
             </div>
             <div id="workoutPlanContainer" style="display:none;"></div>
+        </section>
+
+        <!-- Meal Plan Tab -->
+        <section id="mealplan" class="tab-content">
+            <div class="card" id="noMealPlanMsg">
+                <p class="empty-state">Complete your profile first to get a personalized meal plan.</p>
+            </div>
+            <div id="mealPlanContainer" style="display:none;">
+                <div class="card">
+                    <h2>Your Daily Meal Plan</h2>
+                    <div class="meal-plan-summary">
+                        <div class="mp-summary-item">
+                            <span class="mp-label">Daily Calories</span>
+                            <span class="mp-value" id="mpCalories">--</span>
+                        </div>
+                        <div class="mp-summary-item">
+                            <span class="mp-label">Protein</span>
+                            <span class="mp-value" id="mpProtein">--</span>
+                        </div>
+                        <div class="mp-summary-item">
+                            <span class="mp-label">Carbs</span>
+                            <span class="mp-value" id="mpCarbs">--</span>
+                        </div>
+                        <div class="mp-summary-item">
+                            <span class="mp-label">Fats</span>
+                            <span class="mp-value" id="mpFats">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="meal-plan-toggle">
+                        <button class="mp-diet-btn active" data-diet="balanced">Balanced</button>
+                        <button class="mp-diet-btn" data-diet="highProtein">High Protein</button>
+                        <button class="mp-diet-btn" data-diet="vegetarian">Vegetarian</button>
+                        <button class="mp-diet-btn" data-diet="indian">Indian</button>
+                    </div>
+                </div>
+                <div id="mealPlanContent"></div>
+                <div class="card">
+                    <div class="workout-note">💡 This meal plan is a guide. You can swap similar foods — just track in the Calorie Tracker to stay on target.</div>
+                </div>
+            </div>
         </section>
 
         <!-- Calorie Tracker Tab -->
