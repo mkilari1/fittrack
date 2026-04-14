@@ -159,26 +159,175 @@ async function handleFoodPhoto(e) {
     reader.readAsDataURL(file);
 
     try {
-        // Send to HuggingFace free food recognition AI
+        // Try AI recognition first
         const results = await recognizeFood(file);
         overlay.style.display = 'none';
 
         if (results && results.length > 0) {
             showFoodRecognitionResults(results, resultDiv);
         } else {
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = `<div class="scan-result-name" style="color:var(--warning);">Could not identify the food</div>
-                <p style="color:var(--text-muted);font-size:0.85rem;">Try a clearer photo or search manually below.</p>`;
+            overlay.style.display = 'none';
+            showFoodCategoryPicker(resultDiv);
         }
     } catch (err) {
+        // AI failed — show offline food picker
         overlay.style.display = 'none';
-        resultDiv.style.display = 'block';
-        resultDiv.innerHTML = `<div class="scan-result-name" style="color:var(--danger);">Analysis failed</div>
-            <p style="color:var(--text-muted);font-size:0.85rem;">${err.message || 'Check your internet connection and try again.'}</p>`;
+        showFoodCategoryPicker(resultDiv);
     }
 
     // Reset file input so same photo can be re-selected
     e.target.value = '';
+}
+
+// ========== OFFLINE FOOD CATEGORY PICKER ==========
+const FOOD_CATEGORIES = {
+    '🍗 Chicken / Meat': [
+        { name: 'Grilled Chicken (1 piece)', cal: 280, protein: 43, carbs: 0, fats: 10 },
+        { name: 'Chicken Breast (100g)', cal: 165, protein: 31, carbs: 0, fats: 3.6 },
+        { name: 'Fried Chicken (1 piece)', cal: 294, protein: 24, carbs: 11, fats: 17 },
+        { name: 'Butter Chicken (1 cup)', cal: 340, protein: 28, carbs: 10, fats: 20 },
+        { name: 'Beef Steak (100g)', cal: 271, protein: 26, carbs: 0, fats: 18 },
+        { name: 'Lamb (100g)', cal: 258, protein: 25.6, carbs: 0, fats: 16.5 },
+        { name: 'Turkey Breast (100g)', cal: 135, protein: 30, carbs: 0, fats: 1 },
+    ],
+    '🐟 Fish / Seafood': [
+        { name: 'Salmon (100g)', cal: 208, protein: 20, carbs: 0, fats: 13 },
+        { name: 'Fish Fillet (100g)', cal: 96, protein: 20, carbs: 0, fats: 1.7 },
+        { name: 'Tuna (100g canned)', cal: 116, protein: 25.5, carbs: 0, fats: 0.8 },
+        { name: 'Shrimp (100g)', cal: 99, protein: 24, carbs: 0.2, fats: 0.3 },
+    ],
+    '🍚 Rice / Biryani': [
+        { name: 'White Rice (1 cup)', cal: 206, protein: 4.3, carbs: 45, fats: 0.4 },
+        { name: 'Brown Rice (1 cup)', cal: 216, protein: 5, carbs: 45, fats: 1.8 },
+        { name: 'Biryani (1 plate)', cal: 490, protein: 18, carbs: 65, fats: 16 },
+        { name: 'Fried Rice (1 plate)', cal: 370, protein: 8, carbs: 55, fats: 13 },
+        { name: 'Pulao (1 cup)', cal: 210, protein: 5, carbs: 38, fats: 5 },
+        { name: 'Khichdi (1 cup)', cal: 200, protein: 7, carbs: 34, fats: 4 },
+    ],
+    '🍞 Roti / Bread': [
+        { name: 'Roti / Chapati (1)', cal: 104, protein: 3.1, carbs: 18.3, fats: 2.6 },
+        { name: 'Tandoori Roti (1)', cal: 80, protein: 3, carbs: 15, fats: 1 },
+        { name: 'Naan (1 piece)', cal: 262, protein: 8.7, carbs: 45, fats: 5.1 },
+        { name: 'Paratha (1 plain)', cal: 180, protein: 4, carbs: 24, fats: 7 },
+        { name: 'Aloo Paratha (1)', cal: 230, protein: 5, carbs: 30, fats: 10 },
+        { name: 'Puri (1)', cal: 101, protein: 1.5, carbs: 10, fats: 6 },
+        { name: 'Whole Wheat Bread (1 slice)', cal: 81, protein: 4, carbs: 13.8, fats: 1.1 },
+    ],
+    '🍛 Curry / Dal': [
+        { name: 'Dal (1 cup)', cal: 180, protein: 12, carbs: 28, fats: 2.5 },
+        { name: 'Rajma (1 cup)', cal: 210, protein: 13, carbs: 35, fats: 2 },
+        { name: 'Chole (1 cup)', cal: 240, protein: 12, carbs: 36, fats: 6 },
+        { name: 'Palak Paneer (1 cup)', cal: 230, protein: 14, carbs: 8, fats: 16 },
+        { name: 'Aloo Gobi (1 cup)', cal: 160, protein: 4, carbs: 22, fats: 7 },
+        { name: 'Paneer (100g)', cal: 265, protein: 18.3, carbs: 1.2, fats: 20.8 },
+    ],
+    '🥞 Breakfast': [
+        { name: 'Idli (1 piece)', cal: 39, protein: 2, carbs: 8, fats: 0.2 },
+        { name: 'Dosa (1 plain)', cal: 133, protein: 3.9, carbs: 18, fats: 5 },
+        { name: 'Poha (1 cup)', cal: 250, protein: 5, carbs: 50, fats: 3 },
+        { name: 'Upma (1 cup)', cal: 210, protein: 5, carbs: 32, fats: 7 },
+        { name: 'Oats (1 cup cooked)', cal: 154, protein: 5.4, carbs: 27, fats: 2.6 },
+        { name: 'Egg (1 whole)', cal: 72, protein: 6.3, carbs: 0.4, fats: 4.8 },
+        { name: 'Boiled Egg (1)', cal: 78, protein: 6.3, carbs: 0.6, fats: 5.3 },
+    ],
+    '🍝 Pasta / Noodles': [
+        { name: 'Pasta (1 cup cooked)', cal: 220, protein: 8, carbs: 43, fats: 1.3 },
+        { name: 'Noodles (1 plate)', cal: 380, protein: 12, carbs: 50, fats: 14 },
+        { name: 'Maggi (1 pack)', cal: 205, protein: 4.6, carbs: 27, fats: 8.6 },
+    ],
+    '🍔 Fast Food': [
+        { name: 'Burger (1 regular)', cal: 354, protein: 20, carbs: 29, fats: 17 },
+        { name: 'Pizza Slice (1)', cal: 285, protein: 12, carbs: 36, fats: 10 },
+        { name: 'French Fries (medium)', cal: 365, protein: 4, carbs: 48, fats: 17 },
+        { name: 'Sandwich (veg)', cal: 230, protein: 7, carbs: 30, fats: 9 },
+        { name: 'Wrap / Burrito', cal: 350, protein: 15, carbs: 40, fats: 14 },
+        { name: 'Samosa (1)', cal: 252, protein: 4, carbs: 24, fats: 15 },
+        { name: 'Vada Pav (1)', cal: 290, protein: 5, carbs: 36, fats: 14 },
+    ],
+    '🥗 Salad / Vegetables': [
+        { name: 'Mixed Salad (1 bowl)', cal: 35, protein: 2, carbs: 7, fats: 0.3 },
+        { name: 'Broccoli (1 cup)', cal: 55, protein: 3.7, carbs: 11, fats: 0.6 },
+        { name: 'Spinach cooked (1 cup)', cal: 41, protein: 5.3, carbs: 6.8, fats: 0.5 },
+        { name: 'Sweet Potato (1 medium)', cal: 103, protein: 2.3, carbs: 24, fats: 0.1 },
+        { name: 'Cucumber (1 whole)', cal: 30, protein: 1.3, carbs: 6, fats: 0.2 },
+    ],
+    '🍌 Fruits': [
+        { name: 'Banana (1 medium)', cal: 105, protein: 1.3, carbs: 27, fats: 0.4 },
+        { name: 'Apple (1 medium)', cal: 95, protein: 0.5, carbs: 25, fats: 0.3 },
+        { name: 'Orange (1 medium)', cal: 62, protein: 1.2, carbs: 15.4, fats: 0.2 },
+        { name: 'Mango (1 cup sliced)', cal: 99, protein: 1.4, carbs: 25, fats: 0.6 },
+        { name: 'Watermelon (1 cup)', cal: 46, protein: 0.9, carbs: 11.5, fats: 0.2 },
+        { name: 'Grapes (1 cup)', cal: 104, protein: 1.1, carbs: 27, fats: 0.2 },
+        { name: 'Papaya (1 cup)', cal: 55, protein: 0.9, carbs: 14, fats: 0.2 },
+    ],
+    '🥛 Drinks': [
+        { name: 'Tea with milk (1 cup)', cal: 45, protein: 1, carbs: 6, fats: 1.5 },
+        { name: 'Coffee with milk (1 cup)', cal: 60, protein: 2, carbs: 7, fats: 2 },
+        { name: 'Lassi (1 glass)', cal: 170, protein: 6, carbs: 28, fats: 4 },
+        { name: 'Buttermilk (1 glass)', cal: 40, protein: 3.3, carbs: 4.8, fats: 0.9 },
+        { name: 'Orange Juice (1 glass)', cal: 112, protein: 1.7, carbs: 26, fats: 0.5 },
+        { name: 'Coconut Water (1 glass)', cal: 46, protein: 1.7, carbs: 9, fats: 0.5 },
+        { name: 'Protein Shake (1 glass)', cal: 180, protein: 30, carbs: 8, fats: 3 },
+    ],
+    '🍰 Desserts / Snacks': [
+        { name: 'Ice Cream (1 scoop)', cal: 137, protein: 2.3, carbs: 16, fats: 7.3 },
+        { name: 'Cake Slice (1)', cal: 350, protein: 4, carbs: 52, fats: 14 },
+        { name: 'Chocolate Bar (1 small)', cal: 235, protein: 3.4, carbs: 26, fats: 13 },
+        { name: 'Biscuit / Cookie (1)', cal: 68, protein: 0.8, carbs: 9, fats: 3.2 },
+        { name: 'Donut (1)', cal: 289, protein: 5, carbs: 33, fats: 16 },
+        { name: 'Chips (1 bag 30g)', cal: 155, protein: 2, carbs: 15, fats: 10 },
+    ],
+    '🥜 Nuts / Extras': [
+        { name: 'Almonds (10 pieces)', cal: 69, protein: 2.5, carbs: 2.5, fats: 6 },
+        { name: 'Peanuts (1/4 cup)', cal: 207, protein: 9.4, carbs: 6, fats: 18 },
+        { name: 'Cashews (10 pieces)', cal: 87, protein: 2.9, carbs: 4.6, fats: 7 },
+        { name: 'Greek Yogurt (1 cup)', cal: 130, protein: 22, carbs: 8, fats: 0.7 },
+        { name: 'Curd / Yogurt (1 cup)', cal: 98, protein: 11, carbs: 4, fats: 5 },
+        { name: 'Cheese Slice (1)', cal: 113, protein: 7, carbs: 0.4, fats: 9.3 },
+    ],
+};
+
+function showFoodCategoryPicker(resultDiv) {
+    resultDiv.style.display = 'block';
+    let html = `<div class="scan-result-name">What did you eat?</div>
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.75rem;">Tap a category, then select your food:</p>
+        <div class="food-categories">`;
+
+    for (const [cat] of Object.entries(FOOD_CATEGORIES)) {
+        html += `<button class="food-cat-btn" data-cat="${cat}">${cat}</button>`;
+    }
+
+    html += `</div><div class="food-cat-items" id="foodCatItems"></div>`;
+    resultDiv.innerHTML = html;
+
+    resultDiv.querySelectorAll('.food-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Highlight selected category
+            resultDiv.querySelectorAll('.food-cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const items = FOOD_CATEGORIES[btn.dataset.cat];
+            const itemsDiv = document.getElementById('foodCatItems');
+            itemsDiv.innerHTML = items.map(f => `
+                <div class="food-match" data-food='${JSON.stringify(f).replace(/'/g, "&#39;")}'>
+                    <div class="food-match-header">
+                        <span class="food-match-name">${f.name}</span>
+                        <span class="food-match-confidence">${f.cal} kcal</span>
+                    </div>
+                    <div class="food-match-macros">
+                        P: ${f.protein}g · C: ${f.carbs}g · F: ${f.fats}g
+                    </div>
+                    <button class="btn-add-scanned">Add This</button>
+                </div>`).join('');
+
+            itemsDiv.querySelectorAll('.food-match').forEach(el => {
+                el.querySelector('.btn-add-scanned').addEventListener('click', () => {
+                    const food = JSON.parse(el.dataset.food);
+                    fillFoodForm(food);
+                });
+            });
+        });
+    });
 }
 
 async function recognizeFood(file) {

@@ -528,6 +528,42 @@ input:focus, select:focus {
     font-size: 0.8rem;
 }
 
+/* Food Category Picker */
+.food-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.food-cat-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.5rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.food-cat-btn:hover {
+    border-color: var(--primary);
+}
+
+.food-cat-btn.active {
+    background: var(--primary);
+    color: #000;
+    border-color: var(--primary);
+    font-weight: 600;
+}
+
+.food-cat-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .btn-scan {
     background: linear-gradient(135deg, var(--accent), #5b21b6);
     color: #fff;
