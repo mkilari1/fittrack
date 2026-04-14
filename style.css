@@ -844,6 +844,225 @@ input:focus, select:focus {
     opacity: 0.85;
 }
 
+/* ========== DATE NAVIGATION ========== */
+.date-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+.date-nav-btn {
+    background: var(--card-hover);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+.date-nav-btn:hover {
+    background: var(--primary-dark);
+}
+
+.date-today-btn {
+    background: var(--primary);
+    color: var(--bg);
+    font-weight: 600;
+    border-color: var(--primary);
+}
+
+.date-picker-input {
+    flex: 1;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    text-align: center;
+    color-scheme: dark;
+}
+
+.food-date-label {
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: none;
+}
+
+/* ========== QUANTITY CONTROLS ========== */
+.scan-add-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.qty-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.qty-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--card-hover);
+    color: var(--text);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+}
+
+.qty-btn:hover {
+    background: var(--primary-dark);
+}
+
+.qty-input {
+    width: 45px;
+    text-align: center;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.25rem;
+    font-size: 0.85rem;
+}
+
+.meal-select-mini {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+}
+
+/* ========== INLINE EDIT ========== */
+.btn-edit {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.2rem;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.btn-edit:hover {
+    opacity: 1;
+}
+
+.food-entry-editing {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.6rem;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--primary);
+}
+
+.edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.edit-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+.edit-input {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+.edit-name {
+    flex: 1;
+}
+
+.edit-meal {
+    width: 100px;
+}
+
+.edit-label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    flex: 1;
+    gap: 0.15rem;
+}
+
+.edit-num {
+    width: 100%;
+}
+
+.edit-actions {
+    justify-content: flex-end;
+    gap: 0.4rem;
+    margin-top: 0.2rem;
+}
+
+.btn-edit-save {
+    background: var(--primary);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-edit-cancel {
+    background: var(--card-hover);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+/* ========== TOAST ========== */
+.app-toast {
+    position: fixed;
+    bottom: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: var(--bg);
+    padding: 0.7rem 1.2rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    z-index: 9999;
+    transition: bottom 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,212,170,0.3);
+    white-space: nowrap;
+}
+
+.app-toast.show {
+    bottom: 30px;
+}
+
 /* Scanner camera */
 .scanner-container {
     margin-top: 1rem;

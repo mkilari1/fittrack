@@ -204,6 +204,21 @@ const IMAGENET_FOOD_MAP = {
     // Eggs & dairy
     'hen': { name: 'Grilled Chicken (1 piece)', cal: 280, protein: 43, carbs: 0, fats: 10 },
     'cock': { name: 'Grilled Chicken (1 piece)', cal: 280, protein: 43, carbs: 0, fats: 10 },
+    'drumstick': { name: 'Fried Chicken (1 piece)', cal: 294, protein: 24, carbs: 11, fats: 17 },
+    'rotisserie': { name: 'Grilled Chicken (1 piece)', cal: 280, protein: 43, carbs: 0, fats: 10 },
+
+    // Grains & breads
+    'mashed potato': { name: 'Potato (1 medium baked)', cal: 161, protein: 4.3, carbs: 37, fats: 0.2 },
+    'baked potato': { name: 'Potato (1 medium baked)', cal: 161, protein: 4.3, carbs: 37, fats: 0.2 },
+    'hash brown': { name: 'Potato (1 medium baked)', cal: 200, protein: 2, carbs: 24, fats: 10 },
+    'crouton': { name: 'White Bread (1 slice)', cal: 79, protein: 2.7, carbs: 15, fats: 1 },
+    'noodle': { name: 'Pasta (1 cup cooked)', cal: 220, protein: 8, carbs: 43, fats: 1.3 },
+    'spaghetti': { name: 'Pasta (1 cup cooked)', cal: 220, protein: 8, carbs: 43, fats: 1.3 },
+    'macaroni': { name: 'Pasta (1 cup cooked)', cal: 220, protein: 8, carbs: 43, fats: 1.3 },
+    'ravioli': { name: 'Pasta (1 cup cooked)', cal: 250, protein: 10, carbs: 40, fats: 6 },
+    'dumpling': { name: 'Samosa (1)', cal: 252, protein: 4, carbs: 24, fats: 15 },
+    'waffle iron': { name: 'Roti / Chapati (1)', cal: 104, protein: 3.1, carbs: 18.3, fats: 2.6 },
+    'griddle': { name: 'Dosa (1 plain)', cal: 133, protein: 3.9, carbs: 18, fats: 5 },
 
     // Misc food-adjacent
     'plate': { name: 'White Rice (1 cup cooked)', cal: 206, protein: 4.3, carbs: 45, fats: 0.4 },
@@ -216,7 +231,7 @@ const IMAGENET_FOOD_MAP = {
 // Try to match MobileNet label to food
 function matchMobilenetToFood(label) {
     const lower = label.toLowerCase();
-    // Direct match
+    // Direct match in IMAGENET_FOOD_MAP
     for (const [key, food] of Object.entries(IMAGENET_FOOD_MAP)) {
         if (lower.includes(key.toLowerCase())) return food;
     }
@@ -224,12 +239,19 @@ function matchMobilenetToFood(label) {
     for (const [key, food] of Object.entries(FOOD_RECOGNITION_MAP)) {
         if (lower.includes(key.replace(/_/g, ' '))) return food;
     }
-    // Fuzzy: search FOOD_DB
-    const dbMatch = FOOD_DB.find(f => {
-        const words = lower.split(/[\s,]+/);
-        return words.some(w => w.length > 3 && f.name.toLowerCase().includes(w));
-    });
-    if (dbMatch) return { name: dbMatch.name, cal: dbMatch.cal, protein: dbMatch.protein, carbs: dbMatch.carbs, fats: dbMatch.fats };
+    // Check each word if it's a meaningful food word (>3 chars)
+    const words = lower.split(/[\s,]+/).filter(w => w.length > 3);
+    // Try matching words against IMAGENET_FOOD_MAP keys
+    for (const w of words) {
+        for (const [key, food] of Object.entries(IMAGENET_FOOD_MAP)) {
+            if (key.toLowerCase().includes(w) || w.includes(key.toLowerCase())) return food;
+        }
+    }
+    // Fuzzy: search FOOD_DB by any word
+    for (const w of words) {
+        const dbMatch = FOOD_DB.find(f => f.name.toLowerCase().includes(w));
+        if (dbMatch) return { name: dbMatch.name, cal: dbMatch.cal, protein: dbMatch.protein, carbs: dbMatch.carbs, fats: dbMatch.fats };
+    }
     return null;
 }
 
@@ -320,7 +342,7 @@ async function handleFoodPhoto(e) {
 
 function showLocalRecognitionResults(matches, resultDiv) {
     resultDiv.style.display = 'block';
-    let html = '<div class="scan-result-name">Food Detected!</div>';
+    let html = '<div class="scan-result-name">🎯 Food Detected!</div>';
     html += '<div class="food-matches">';
 
     matches.slice(0, 3).forEach((m, i) => {
@@ -330,12 +352,25 @@ function showLocalRecognitionResults(matches, resultDiv) {
             <div class="food-match ${i === 0 ? 'best-match' : ''}" data-food='${JSON.stringify(f).replace(/'/g, "&#39;")}'>
                 <div class="food-match-header">
                     <span class="food-match-name">${i === 0 ? '🎯 ' : ''}${f.name}</span>
-                    <span class="food-match-confidence">${confidence}% match</span>
+                    <span class="food-match-confidence">${confidence}%</span>
                 </div>
                 <div class="food-match-macros">
                     ${f.cal} kcal · P: ${f.protein}g · C: ${f.carbs}g · F: ${f.fats}g
                 </div>
-                <button class="btn-add-scanned">Add This</button>
+                <div class="scan-add-row">
+                    <label class="qty-label">Qty:</label>
+                    <button class="qty-btn qty-minus">−</button>
+                    <input type="number" class="qty-input" value="1" min="0.5" max="10" step="0.5">
+                    <button class="qty-btn qty-plus">+</button>
+                    <select class="meal-select-mini">
+                        <option value="auto">${guessMealTime().charAt(0).toUpperCase() + guessMealTime().slice(1)}</option>
+                        <option value="breakfast">Breakfast</option>
+                        <option value="lunch">Lunch</option>
+                        <option value="dinner">Dinner</option>
+                        <option value="snack">Snack</option>
+                    </select>
+                    <button class="btn-add-scanned">➕ Add</button>
+                </div>
             </div>`;
     });
 
@@ -344,10 +379,21 @@ function showLocalRecognitionResults(matches, resultDiv) {
     html += '<button class="btn-add-scanned" id="btnShowCategories" style="margin-top:0.25rem;background:var(--accent);">Browse Food Categories</button>';
     resultDiv.innerHTML = html;
 
+    // Wire up qty buttons
     resultDiv.querySelectorAll('.food-match').forEach(el => {
+        const qtyInput = el.querySelector('.qty-input');
+        el.querySelector('.qty-minus').addEventListener('click', () => {
+            qtyInput.value = Math.max(0.5, parseFloat(qtyInput.value) - 0.5);
+        });
+        el.querySelector('.qty-plus').addEventListener('click', () => {
+            qtyInput.value = Math.min(10, parseFloat(qtyInput.value) + 0.5);
+        });
         el.querySelector('.btn-add-scanned').addEventListener('click', () => {
             const food = JSON.parse(el.dataset.food);
-            fillFoodForm(food);
+            const qty = parseFloat(qtyInput.value) || 1;
+            const mealSel = el.querySelector('.meal-select-mini').value;
+            const meal = mealSel === 'auto' ? guessMealTime() : mealSel;
+            addFoodToLog(food, qty, meal);
         });
     });
 
@@ -496,13 +542,26 @@ function showFoodCategoryPicker(resultDiv) {
                     <div class="food-match-macros">
                         P: ${f.protein}g · C: ${f.carbs}g · F: ${f.fats}g
                     </div>
-                    <button class="btn-add-scanned">Add This</button>
+                    <div class="scan-add-row">
+                        <button class="qty-btn qty-minus">−</button>
+                        <input type="number" class="qty-input" value="1" min="0.5" max="10" step="0.5">
+                        <button class="qty-btn qty-plus">+</button>
+                        <button class="btn-add-scanned">➕ Add</button>
+                    </div>
                 </div>`).join('');
 
             itemsDiv.querySelectorAll('.food-match').forEach(el => {
+                const qtyInput = el.querySelector('.qty-input');
+                el.querySelector('.qty-minus').addEventListener('click', () => {
+                    qtyInput.value = Math.max(0.5, parseFloat(qtyInput.value) - 0.5);
+                });
+                el.querySelector('.qty-plus').addEventListener('click', () => {
+                    qtyInput.value = Math.min(10, parseFloat(qtyInput.value) + 0.5);
+                });
                 el.querySelector('.btn-add-scanned').addEventListener('click', () => {
                     const food = JSON.parse(el.dataset.food);
-                    fillFoodForm(food);
+                    const qty = parseFloat(qtyInput.value) || 1;
+                    addFoodToLog(food, qty, guessMealTime());
                 });
             });
         });
@@ -540,7 +599,7 @@ function showFoodRecognitionResults(results, resultDiv) {
     const top = results.slice(0, 3);
     resultDiv.style.display = 'block';
 
-    let html = '<div class="scan-result-name">Food Detected!</div>';
+    let html = '<div class="scan-result-name">🎯 Food Detected!</div>';
     html += '<div class="food-matches">';
 
     top.forEach((pred, i) => {
@@ -552,24 +611,53 @@ function showFoodRecognitionResults(results, resultDiv) {
             <div class="food-match ${i === 0 ? 'best-match' : ''}" data-food='${JSON.stringify(mapped).replace(/'/g, "&#39;")}'>
                 <div class="food-match-header">
                     <span class="food-match-name">${i === 0 ? '🎯 ' : ''}${capitalize(label)}</span>
-                    <span class="food-match-confidence">${confidence}% match</span>
+                    <span class="food-match-confidence">${confidence}%</span>
                 </div>
                 <div class="food-match-macros">
                     ${mapped.cal} kcal · P: ${mapped.protein}g · C: ${mapped.carbs}g · F: ${mapped.fats}g
                 </div>
-                <button class="btn-add-scanned">Add This</button>
+                <div class="scan-add-row">
+                    <label class="qty-label">Qty:</label>
+                    <button class="qty-btn qty-minus">−</button>
+                    <input type="number" class="qty-input" value="1" min="0.5" max="10" step="0.5">
+                    <button class="qty-btn qty-plus">+</button>
+                    <select class="meal-select-mini">
+                        <option value="auto">${guessMealTime().charAt(0).toUpperCase() + guessMealTime().slice(1)}</option>
+                        <option value="breakfast">Breakfast</option>
+                        <option value="lunch">Lunch</option>
+                        <option value="dinner">Dinner</option>
+                        <option value="snack">Snack</option>
+                    </select>
+                    <button class="btn-add-scanned">➕ Add</button>
+                </div>
             </div>`;
     });
 
     html += '</div>';
+    html += '<p style="color:var(--text-muted);font-size:0.8rem;margin-top:0.75rem;">Not correct? Pick manually:</p>';
+    html += '<button class="btn-add-scanned" id="btnShowCategories2" style="margin-top:0.25rem;background:var(--accent);">Browse Food Categories</button>';
     resultDiv.innerHTML = html;
 
-    // Attach click handlers
+    // Wire up qty and add buttons
     resultDiv.querySelectorAll('.food-match').forEach(el => {
+        const qtyInput = el.querySelector('.qty-input');
+        el.querySelector('.qty-minus').addEventListener('click', () => {
+            qtyInput.value = Math.max(0.5, parseFloat(qtyInput.value) - 0.5);
+        });
+        el.querySelector('.qty-plus').addEventListener('click', () => {
+            qtyInput.value = Math.min(10, parseFloat(qtyInput.value) + 0.5);
+        });
         el.querySelector('.btn-add-scanned').addEventListener('click', () => {
             const food = JSON.parse(el.dataset.food);
-            fillFoodForm(food);
+            const qty = parseFloat(qtyInput.value) || 1;
+            const mealSel = el.querySelector('.meal-select-mini').value;
+            const meal = mealSel === 'auto' ? guessMealTime() : mealSel;
+            addFoodToLog(food, qty, meal);
         });
+    });
+
+    document.getElementById('btnShowCategories2')?.addEventListener('click', () => {
+        showFoodCategoryPicker(resultDiv);
     });
 }
 
@@ -768,7 +856,7 @@ foodSearchInput.addEventListener('input', () => {
     foodSearchResults.querySelectorAll('.search-item[data-idx]').forEach(el => {
         el.addEventListener('click', () => {
             const food = FOOD_DB[parseInt(el.dataset.idx)];
-            fillFoodForm(food);
+            addFoodToLog(food, 1, guessMealTime());
             foodSearchResults.classList.remove('visible');
             foodSearchInput.value = '';
         });
@@ -790,6 +878,48 @@ function fillFoodForm(food) {
     document.getElementById('foodFats').value = food.fats;
     // Scroll to the form
     document.getElementById('foodForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Quick-add food directly to log (from scanner / search) with quantity
+function addFoodToLog(food, qty, mealType) {
+    const entry = {
+        name: qty > 1 ? `${food.name} ×${qty}` : food.name,
+        meal: mealType || guessMealTime(),
+        calories: Math.round(food.cal * qty),
+        protein: Math.round(food.protein * qty * 10) / 10,
+        carbs: Math.round(food.carbs * qty * 10) / 10,
+        fats: Math.round(food.fats * qty * 10) / 10,
+        time: new Date().toISOString()
+    };
+    const key = selectedFoodDate;
+    if (!state.foodLog[key]) state.foodLog[key] = [];
+    state.foodLog[key].push(entry);
+    saveState(state);
+    renderFoodLog();
+    showToast(`✅ Added ${entry.name} (${entry.calories} kcal)`);
+}
+
+// Guess current meal based on time of day
+function guessMealTime() {
+    const h = new Date().getHours();
+    if (h < 11) return 'breakfast';
+    if (h < 15) return 'lunch';
+    if (h < 18) return 'snack';
+    return 'dinner';
+}
+
+// Toast notification
+function showToast(msg) {
+    let toast = document.getElementById('appToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'appToast';
+        toast.className = 'app-toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
 // ========== BARCODE SCANNER ==========
@@ -1644,16 +1774,39 @@ function todayKey() {
     return new Date().toISOString().slice(0, 10);
 }
 
+// Currently selected date for food log
+let selectedFoodDate = todayKey();
+
+function getSelectedDateFoods() {
+    return state.foodLog[selectedFoodDate] || [];
+}
+
 function getTodayFoods() {
-    return state.foodLog[todayKey()] || [];
+    return getSelectedDateFoods();
 }
 
 function renderFoodLog() {
-    const foods = getTodayFoods();
+    const foods = getSelectedDateFoods();
     const container = document.getElementById('foodLog');
+    const dateLabel = document.getElementById('foodDateLabel');
+
+    // Update date picker
+    const picker = document.getElementById('foodDatePicker');
+    if (picker) picker.value = selectedFoodDate;
+
+    // Show date label if not today
+    if (dateLabel) {
+        if (selectedFoodDate !== todayKey()) {
+            const d = new Date(selectedFoodDate + 'T12:00:00');
+            dateLabel.textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            dateLabel.style.display = 'block';
+        } else {
+            dateLabel.style.display = 'none';
+        }
+    }
 
     if (foods.length === 0) {
-        container.innerHTML = '<p class="empty-state">No food entries yet today.</p>';
+        container.innerHTML = '<p class="empty-state">No food entries for this day.</p>';
         updateCalorieRing(0);
         updateMacros(0, 0, 0);
         return;
@@ -1670,23 +1823,32 @@ function renderFoodLog() {
         html += `<div class="meal-header">${mealNames[key]}</div>`;
         items.forEach(f => {
             html += `
-                <div class="food-entry">
+                <div class="food-entry" data-idx="${f._idx}">
                     <div class="food-entry-info">
                         <div class="food-entry-name">${escapeHtml(f.name)}</div>
                         <div class="food-entry-meta">P: ${f.protein}g · C: ${f.carbs}g · F: ${f.fats}g</div>
                     </div>
                     <span class="food-entry-cal">${f.calories} kcal</span>
-                    <button class="btn-delete" data-idx="${f._idx}">✕</button>
+                    <button class="btn-edit" data-idx="${f._idx}" title="Edit">✏️</button>
+                    <button class="btn-delete" data-idx="${f._idx}" title="Delete">✕</button>
                 </div>`;
         });
     }
     container.innerHTML = html;
 
+    // Attach edit handlers
+    container.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.idx);
+            openInlineEdit(idx, container);
+        });
+    });
+
     // Attach delete handlers
     container.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', () => {
             const idx = parseInt(btn.dataset.idx);
-            state.foodLog[todayKey()].splice(idx, 1);
+            state.foodLog[selectedFoodDate].splice(idx, 1);
             saveState(state);
             renderFoodLog();
         });
@@ -1701,6 +1863,53 @@ function renderFoodLog() {
 
     updateCalorieRing(totals.cal);
     updateMacros(totals.p, totals.c, totals.f);
+}
+
+function openInlineEdit(idx) {
+    const entry = state.foodLog[selectedFoodDate][idx];
+    if (!entry) return;
+    const row = document.querySelector(`.food-entry[data-idx="${idx}"]`);
+    if (!row) return;
+
+    row.classList.add('food-entry-editing');
+    row.innerHTML = `
+        <div class="edit-form">
+            <div class="edit-row">
+                <input type="text" class="edit-input edit-name" value="${escapeHtml(entry.name)}" placeholder="Food name">
+                <select class="edit-input edit-meal">
+                    <option value="breakfast" ${entry.meal === 'breakfast' ? 'selected' : ''}>Breakfast</option>
+                    <option value="lunch" ${entry.meal === 'lunch' ? 'selected' : ''}>Lunch</option>
+                    <option value="dinner" ${entry.meal === 'dinner' ? 'selected' : ''}>Dinner</option>
+                    <option value="snack" ${entry.meal === 'snack' ? 'selected' : ''}>Snack</option>
+                </select>
+            </div>
+            <div class="edit-row">
+                <label class="edit-label">Cal<input type="number" class="edit-input edit-num edit-cal" value="${entry.calories}" min="0"></label>
+                <label class="edit-label">P<input type="number" class="edit-input edit-num edit-protein" value="${entry.protein}" min="0" step="0.1"></label>
+                <label class="edit-label">C<input type="number" class="edit-input edit-num edit-carbs" value="${entry.carbs}" min="0" step="0.1"></label>
+                <label class="edit-label">F<input type="number" class="edit-input edit-num edit-fats" value="${entry.fats}" min="0" step="0.1"></label>
+            </div>
+            <div class="edit-row edit-actions">
+                <button class="btn-edit-save">💾 Save</button>
+                <button class="btn-edit-cancel">Cancel</button>
+            </div>
+        </div>`;
+
+    row.querySelector('.btn-edit-save').addEventListener('click', () => {
+        entry.name = row.querySelector('.edit-name').value.trim() || entry.name;
+        entry.meal = row.querySelector('.edit-meal').value;
+        entry.calories = parseInt(row.querySelector('.edit-cal').value) || 0;
+        entry.protein = parseFloat(row.querySelector('.edit-protein').value) || 0;
+        entry.carbs = parseFloat(row.querySelector('.edit-carbs').value) || 0;
+        entry.fats = parseFloat(row.querySelector('.edit-fats').value) || 0;
+        saveState(state);
+        renderFoodLog();
+        showToast('✅ Entry updated');
+    });
+
+    row.querySelector('.btn-edit-cancel').addEventListener('click', () => {
+        renderFoodLog();
+    });
 }
 
 function escapeHtml(str) {
@@ -2204,6 +2413,28 @@ document.querySelectorAll('.mp-diet-btn').forEach(btn => {
     });
 });
 
+// Date navigation for food log
+document.getElementById('foodDatePicker').addEventListener('change', (e) => {
+    selectedFoodDate = e.target.value;
+    renderFoodLog();
+});
+document.getElementById('datePrev').addEventListener('click', () => {
+    const d = new Date(selectedFoodDate + 'T12:00:00');
+    d.setDate(d.getDate() - 1);
+    selectedFoodDate = d.toISOString().slice(0, 10);
+    renderFoodLog();
+});
+document.getElementById('dateNext').addEventListener('click', () => {
+    const d = new Date(selectedFoodDate + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    selectedFoodDate = d.toISOString().slice(0, 10);
+    renderFoodLog();
+});
+document.getElementById('dateToday').addEventListener('click', () => {
+    selectedFoodDate = todayKey();
+    renderFoodLog();
+});
+
 // Food form
 document.getElementById('foodForm').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -2217,13 +2448,14 @@ document.getElementById('foodForm').addEventListener('submit', (e) => {
         time: new Date().toISOString()
     };
 
-    const key = todayKey();
+    const key = selectedFoodDate;
     if (!state.foodLog[key]) state.foodLog[key] = [];
     state.foodLog[key].push(entry);
     saveState(state);
 
     e.target.reset();
     renderFoodLog();
+    showToast(`✅ Added ${entry.name} (${entry.calories} kcal)`);
 });
 
 // Weight log form

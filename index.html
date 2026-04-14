@@ -254,6 +254,12 @@
         <section id="calories" class="tab-content">
             <div class="card">
                 <h2>Daily Calorie Tracker</h2>
+                <div class="date-nav">
+                    <button class="date-nav-btn" id="datePrev">◀</button>
+                    <input type="date" id="foodDatePicker" class="date-picker-input">
+                    <button class="date-nav-btn" id="dateNext">▶</button>
+                    <button class="date-nav-btn date-today-btn" id="dateToday">Today</button>
+                </div>
                 <div class="calorie-header">
                     <div class="calorie-ring-container">
                         <svg class="calorie-ring" viewBox="0 0 120 120">
@@ -374,6 +380,7 @@
 
             <div class="card">
                 <h3>Today's Food Log</h3>
+                <div id="foodDateLabel" class="food-date-label"></div>
                 <div id="foodLog">
                     <p class="empty-state">No food entries yet today.</p>
                 </div>
